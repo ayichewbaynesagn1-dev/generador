@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generador - Google Ads</title>
+    <style>
+        :root {
+            --primary: #0f172a;
+            --accent: #10b981; /* Cambiado a un tono verde/esmeralda más acorde a IA */
+            --bg: #f8fafc;
+            --surface: #ffffff;
+            --text: #334155;
+            --border: #e2e8f0;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: system-ui, -apple-system, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            padding: 2rem 1rem;
+        }
+
+        .container {
+            max-width: 850px;
+            margin: 0 auto;
+            background: var(--surface);
+            padding: 2.5rem;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.01);
+        }
+
+        h1 {
+            font-size: 2rem;
+            font-weight: 800;
+            color: var(--primary);
+            text-align: center;
+            letter-spacing: -0.025em;
+        }
+
+        p.subtitle {
+            text-align: center;
+            color: #64748b;
+            margin-bottom: 2.5rem;
+            font-size: 1rem;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .form-group.full-width {
+            grid-column: 1 / -1;
+        }
+
+        label {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--primary);
+        }
+
+        input[type="text"],
+        input[type="email"],
+        input[type="password"] {
+            width: 100%;
+            padding: 0.875rem 1rem;
+            border: 1.5px solid var(--border);
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: all 0.2s ease;
+            background: #f8fafc;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: var(--accent);
+            background: #fff;
+            box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.1);
+        }
+
+        .api-section {
+            background: linear-gradient(to right, #ecfdf5, #d1fae5);
+            padding: 1.5rem;
+            border-radius: 12px;
+            margin-bottom: 2.5rem;
+            border: 1px solid #a7f3d0;
+        }
+
+        button {
+            width: 100%;
+            background-color: var(--accent);
+            color: white;
+            padding: 1.25rem;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            margin-top: 2rem;
+            box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.3);
+        }
+
+        button:hover {
+            background-color: #059669;
+            transform: translateY(-1px);
+            box-shadow: 0 6px 8px -1px rgba(16, 185, 129, 0.4);
+        }
+
+        button:disabled {
+            background-color: #6ee7b7;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        #loadingOverlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(5px);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+        }
+
+        .loader {
+            width: 60px;
+            height: 60px;
+            border: 5px solid #e2e8f0;
+            border-bottom-color: var(--accent);
+            border-radius: 50%;
+            display: inline-block;
+            box-sizing: border-box;
+            animation: rotation 1s linear infinite;
+            margin-bottom: 1.5rem;
+        }
+
+        @keyframes rotation {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        #statusText {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--primary);
+            text-align: center;
+            line-height: 1.4;
+        }
+
+        #statusText small {
+            font-size: 0.9rem;
+            font-weight: 400;
+            color: #64748b;
+        }
+
+        .error-msg {
+            color: #991b1b;
+            background: #fef2f2;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-top: 1.5rem;
+            border: 1px solid #fecaca;
+            display: none;
+            font-weight: 500;
+            word-wrap: break-word;
+        }
+
+        @media (max-width: 640px) {
+            .form-grid { grid-template-columns: 1fr; }
+            .container { padding: 1.5rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Generador de Landings</h1>
+        <p class="subtitle">Estructura SEO</p>
+
+        <form id="generatorForm">
+            <div class="api-section">
+                <div class="form-group full-width">
+                    <label for="apiKey">Gemini API Key</label>
+                    <input type="password" id="apiKey" placeholder="AIzaSy..." required>
+                    <small style="color: #64748b; margin-top: 0.25rem;">Se guarda localmente en tu navegador.</small>
+                </div>
+            </div>
+
+            <div class="form-grid">
+                <div class="form-group full-width">
+                    <label for="titulo">Título de la Landing</label>
+                    <input type="text" id="titulo" placeholder="Ej: ConsultasOnline - Clima y Energía" required>
+                </div>
+                
+                <div class="form-group full-width">
+                    <label for="tema">Tema / Propuesta de Valor</label>
+                    <input type="text" id="tema" placeholder="Ej: Reportes meteorológicos y alertas de radiación solar en el Caribe" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="nombre">Nombre y Apellidos</label>
+                    <input type="text" id="nombre" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="correo">Correo Electrónico</label>
+                    <input type="email" id="correo" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="direccion">Dirección Física</label>
+                    <input type="text" id="direccion" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="telefono">Teléfono</label>
+                    <input type="text" id="telefono" required>
+                </div>
+
+                <div class="form-group full-width">
+                    <label for="ciudad">Ciudad / País</label>
+                    <input type="text" id="ciudad" required>
+                </div>
+            </div>
+
+            <div id="errorBox" class="error-msg"></div>
+
+            <button type="submit" id="generateBtn">Generar Archivos con Gemini</button>
+        </form>
+    </div>
+
+    <div id="loadingOverlay">
+        <span class="loader"></span>
+        <p id="statusText">Iniciando proceso...<br><small>Por favor espera.</small></p>
+    </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            const savedKey = localStorage.getItem("gemini_api_key");
+            if (savedKey) {
+                document.getElementById("apiKey").value = savedKey;
+            }
+        });
+
+        // NUEVA FUNCIÓN ADAPTADA EXCLUSIVAMENTE PARA LA API DE GEMINI
+        async function fetchCodeFromGemini(apiKey, systemPrompt, userPrompt) {
+            // Usamos el modelo gemini-1.5-pro para máxima capacidad de código
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=${apiKey}`;
+            
+            const payload = {
+                system_instruction: {
+                    parts: [{ text: systemPrompt }]
+                },
+                contents: [{
+                    parts: [{ text: userPrompt }]
+                }],
+                generationConfig: {
+                    temperature: 0.6,
+                    maxOutputTokens: 8192 // Límite inmenso para evitar cortes de código
+                }
+            };
+
+            const response = await fetch(url, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(payload)
+            });
+
+            if (!response.ok) {
+                const errData = await response.json();
+                throw new Error(errData.error?.message || "Error en la conexión con la API de Gemini.");
+            }
+
+            const data = await response.json();
+            
+            // Verificación de seguridad por si Gemini bloquea el contenido
+            if (data.promptFeedback && data.promptFeedback.blockReason) {
+                 throw new Error("Gemini bloqueó la generación por políticas de seguridad: " + data.promptFeedback.blockReason);
+            }
+
+            let content = data.candidates[0].content.parts[0].text;
+            
+            // Limpiamos los delimitadores Markdown si el modelo los devuelve
+            content = content.replace(/^```html\n?/gm, '').replace(/```$/gm, '').trim();
+            return content;
+        }
+
+        function downloadHTML(filename, htmlContent) {
+            if (!htmlContent) return;
+            const blob = new Blob([htmlContent], { type: "text/html" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        document.getElementById('generatorForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const apiKey = document.getElementById("apiKey").value.trim();
+            const titulo = document.getElementById("titulo").value.trim();
+            const tema = document.getElementById("tema").value.trim();
+            const nombre = document.getElementById("nombre").value.trim();
+            const correo = document.getElementById("correo").value.trim();
+            const direccion = document.getElementById("direccion").value.trim();
+            const telefono = document.getElementById("telefono").value.trim();
+            const ciudad = document.getElementById("ciudad").value.trim();
+
+            localStorage.setItem("gemini_api_key", apiKey);
+
+            const overlay = document.getElementById("loadingOverlay");
+            const statusText = document.getElementById("statusText");
+            const btn = document.getElementById("generateBtn");
+            const errorBox = document.getElementById("errorBox");
+            
+            overlay.style.display = "flex";
+            btn.disabled = true;
+            errorBox.style.display = "none";
+
+            // SYSTEM PROMPT EXIGENTE - CERO OMISIONES
+            const baseSystemPrompt = `
+Eres un Desarrollador Web Full-Stack Senior, experto en UI/UX y Copywriter especialista en Google Ads.
+Tu única tarea es generar CÓDIGO HTML COMPLETO, EXTENSO Y 100% FUNCIONAL.
+REGLA ABSOLUTA 1: TIENES PROHIBIDO CORTAR EL CÓDIGO. Nunca uses comentarios como "// resto del código aquí". Dame el código completo ya funcional, desde la etiqueta <!DOCTYPE html> hasta </html>.
+REGLA ABSOLUTA 2: PROHIBIDO SER PEREZOSO. Debes redactar textos reales, persuasivos y extensos para cada sección. No uses "Lorem Ipsum" ni dejes secciones vacías.
+Tu respuesta debe contener ÚNICAMENTE el código fuente, sin saludos ni explicaciones.
+`;
+
+            try {
+                // PETICIÓN 1: INDEX.HTML
+                statusText.innerHTML = `Paso 1 de 3: Generando index.html...<br><small>Construyendo diseño Premium, SEO y textos extensos con Gemini</small>`;
+                
+                const indexPrompt = `
+Crea una landing page totalmente nueva en HTML, CSS y JS, con diseño original, responsive, rápida y fácil de navegar. Debe estar enfocada en Google Ads y cumplir con los requisitos de destino: funcionar en móvil y escritorio, ser rastreable, accesible, sin redirecciones extrañas, sin pop-ups invasivos y sin contenido engañoso. TODO EN UN SOLO ARCHIVO INDEX.HTML.
+
+Datos del negocio:
+- Título de la landing: ${titulo}
+- Tema de la landing: ${tema}
+- Nombre y apellidos: ${nombre}
+- Correo: ${correo}
+- Dirección: ${direccion}
+- Teléfono: ${telefono}
+- Ciudad / país: ${ciudad}
+- Horario de atención: todos los días de la semana de 8:00am a 5:00pm
+
+La landing debe ser EXTENSA y PROFESIONAL, incluyendo OBLIGATORIAMENTE estas secciones con textos reales y persuasivos:
+1. SEO TOTALMENTE PROFESIONAL: Optimización On-page incluyendo etiquetas meta (description, keywords, author), Open Graph para redes sociales, y estructura semántica impecable (H1 único, H2, H3).
+2. Hero Section: Imagen de fondo espectacular (usa url('https://picsum.photos/seed/${encodeURIComponent(tema.split(' ')[0])}/1920/1080') con un degradado oscuro encima para que el texto sea legible), título impactante, subtítulo claro y un CTA PRINCIPAL DINÁMICO. (Ej: Si el tema es "Clases de baile", el CTA debe ser "Reserva tu clase gratis", no "Más información").
+3. Beneficios: Un grid moderno (mínimo 3 columnas) con iconos SVG inline, títulos y descripciones detalladas de al menos 3 líneas cada una.
+4. Servicios o propuesta de valor: Diseño alternado (imagen a un lado, texto abundante y persuasivo al otro).
+5. Prueba social: Mínimo 3 testimonios realistas, honestos y verificables con diseño de tarjeta. (No usar afirmaciones exageradas, ni falsas).
+6. Formulario de contacto: Diseño limpio, moderno, con inputs bien espaciados y botón llamativo.
+7. Información de empresa y transparencia: Muestra claramente los datos de contacto y el horario de atención para cumplir con la transparencia de Google Ads.
+8. Footer con datos legales: Copyright, datos de contacto y OBLIGATORIAMENTE enlaces funcionales a "politica-de-privacidad.html" y "terminos-y-condiciones.html".
+
+REQUISITOS TÉCNICOS DE DISEÑO:
+- Importa una tipografía moderna de Google Fonts (Ej: 'Inter' o 'Poppins').
+- El CSS debe ser complejo y moderno: usa variables nativas, Flexbox/Grid, sombras suaves (box-shadow), bordes redondeados (border-radius), y transiciones hover.
+- El JS debe incluir un menú de navegación sticky (fijo al hacer scroll) que cambie de color, y animaciones de scroll (IntersectionObserver) para que los elementos vayan apareciendo suavemente (fade-in) a medida que el usuario baja.
+- El código debe estar listo para copiar y pegar, 100% COMPLETO sin saltarse líneas.
+`;
+                const indexHTML = await fetchCodeFromGemini(apiKey, baseSystemPrompt, indexPrompt);
+                downloadHTML("index.html", indexHTML);
+
+                // PETICIÓN 2: POLÍTICA DE PRIVACIDAD
+                statusText.innerHTML = `Paso 2 de 3: Generando Política de Privacidad...<br><small>Redactando términos legales estrictos</small>`;
+                
+                const privPrompt = `
+Genera la página "politica-de-privacidad.html".
+Datos del responsable:
+- Anunciante: ${nombre}
+- Correo: ${correo}
+- Dirección: ${direccion}, ${ciudad}
+- Teléfono: ${telefono}
+
+Instrucciones:
+- TIENES PROHIBIDO RESUMIR ESTE DOCUMENTO. Debe ser un documento legal extenso, con múltiples artículos detallados (Identidad, Propósito, Recopilación, Uso, Derechos).
+- Cumplimiento de Hábeas Data.
+- Usa estilos CSS coherentes y profesionales, con el mismo tipo de fuente que la landing.
+- Incluye un botón o enlace visible para volver a "index.html".
+- Dame el código HTML completo y funcional, sin saltarte líneas.
+`;
+                const privacidadHTML = await fetchCodeFromGemini(apiKey, baseSystemPrompt, privPrompt);
+                downloadHTML("politica-de-privacidad.html", privacidadHTML);
+
+                // PETICIÓN 3: TÉRMINOS Y CONDICIONES
+                statusText.innerHTML = `Paso 3 de 3: Generando Términos y Condiciones...<br><small>Finalizando documentos</small>`;
+                
+                const termPrompt = `
+Genera la página "terminos-y-condiciones.html".
+Datos del responsable:
+- Anunciante: ${nombre}
+- Correo: ${correo}
+- Dirección: ${direccion}, ${ciudad}
+
+Instrucciones:
+- TIENES PROHIBIDO RESUMIR ESTE DOCUMENTO. Debe ser un contrato extenso, formal y contundente para evitar suspensiones por prácticas inaceptables en Google Ads.
+- Exonera responsabilidades y aclara el carácter puramente orientativo/comercial del sitio.
+- Usa estilos CSS coherentes y profesionales, con el mismo tipo de fuente.
+- Incluye un botón o enlace visible para volver a "index.html".
+- Dame el código HTML completo y funcional, sin saltarte líneas.
+`;
+                const terminosHTML = await fetchCodeFromGemini(apiKey, baseSystemPrompt, termPrompt);
+                downloadHTML("terminos-y-condiciones.html", terminosHTML);
+
+                // FIN
+                statusText.innerHTML = `¡Completado!<br><small>Archivos generados con Gemini y descargados con éxito.</small>`;
+                setTimeout(() => {
+                    overlay.style.display = "none";
+                    btn.disabled = false;
+                }, 2000);
+
+            } catch (error) {
+                console.error(error);
+                errorBox.textContent = `Error: ${error.message}`;
+                errorBox.style.display = "block";
+                overlay.style.display = "none";
+                btn.disabled = false;
+            }
+        });
+    </script>
+</body>
+</html>
