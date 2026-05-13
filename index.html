@@ -9,7 +9,7 @@
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f8fafc; padding: 20px; color: #1e293b; }
         
-        /* NUEVO: Estilos del Header / Menú de navegación */
+        /* Estilos del Header / Menú de navegación */
         .main-header { background-color: #4d4d4d; padding: 15px 20px; border-radius: 8px; margin-bottom: 25px; display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
         .main-header a { color: #f8fafc; text-decoration: none; font-size: 13px; font-weight: 600; padding: 8px 12px; border-radius: 4px; transition: background 0.3s; text-transform: uppercase; }
         .main-header a:hover { background-color: #334155; color: #10b981; }
@@ -26,6 +26,15 @@
         button:disabled { background-color: #94a3b8; cursor: not-allowed; }
         .notice { background: #fef3c7; color: #92400e; padding: 12px; border-radius: 4px; font-size: 13px; margin-bottom: 15px; border: 1px solid #fde68a; line-height: 1.5; }
         #loading { display: none; text-align: center; margin-top: 15px; font-weight: bold; color: #10b981; font-size: 14px; }
+        
+        /* NUEVO: Estilos para las respuestas del formulario */
+        .respuestas-section { margin-top: 40px; border-top: 2px solid #e2e8f0; padding-top: 20px; display: none; }
+        .respuestas-section h2 { font-size: 20px; color: #0f172a; margin-bottom: 20px; }
+        .response-card { background: #f1f5f9; border: 1px solid #cbd5e1; padding: 20px; border-radius: 8px; margin-bottom: 20px; position: relative; }
+        .response-card h3 { margin-top: 0; font-size: 15px; color: #1e40af; margin-bottom: 12px; padding-right: 90px; }
+        .response-card p { font-size: 14px; color: #334155; white-space: pre-wrap; line-height: 1.6; margin: 0; }
+        .copy-btn { position: absolute; top: 18px; right: 20px; background: #10b981; color: white; border: none; padding: 6px 15px; font-weight: bold; border-radius: 4px; font-size: 12px; cursor: pointer; transition: background 0.3s; width: auto; margin-top: 0; }
+        .copy-btn:hover { background: #059669; }
     </style>
 </head>
 <body>
@@ -41,11 +50,7 @@
     </div>
 
     <div class="panel">
-        <h1>Generador Legal Doble Documento</h1>
-        
-        <!-- <div class="notice">
-            <strong>Prompt Robusto Restaurado:</strong> La IA tiene ESTRICTAMENTE PROHIBIDO resumir. Adaptará el borrador base extenso para el Documento 1 y las variables del Documento 2 simultáneamente. La API Key se guarda localmente de forma segura.
-        </div> -->
+        <h1>Generador Legal Doble Documento y Formulario VOC</h1>
 
         <div style="background: #eff6ff; padding: 15px; border-radius: 6px; margin-bottom: 20px; border: 1px solid #bfdbfe;">
             <label style="color: #1e3a8a;">API Key de OpenAI (GPT-4o):</label>
@@ -73,18 +78,39 @@
             <div class="form-group"><label>Anexo D (Evidencia Sitio 2):</label><input type="file" id="captura4" accept="image/*"></div>
         </div>
 
-        <button id="btnGenerar" onclick="generarDocumentos()">Analizar y Generar Ambos Documentos (.docx)</button>
+        <button id="btnGenerar" onclick="generarDocumentos()">Analizar y Generar (Documentos + Respuestas)</button>
         <div id="loading">Auditando HTML con el prompt robusto... Por favor, no cierres la ventana.</div>
+
+        <!-- NUEVO: Contenedor para las respuestas del formulario VOC -->
+        <div id="respuestasContainer" class="respuestas-section">
+            <h2>Respuestas para el Formulario de Google Ads (Listas para copiar)</h2>
+            <div id="respuestasList"></div>
+        </div>
+
     </div>
 
     <script>
-        // NUEVO: Cargar API Key guardada al abrir la página
+        // Cargar API Key guardada al abrir la página
         window.addEventListener('DOMContentLoaded', () => {
             const savedApiKey = localStorage.getItem('gpt4o_api_key');
             if (savedApiKey) {
                 document.getElementById('apiKey').value = savedApiKey;
             }
         });
+
+        // NUEVO: Función para el botón de copiar
+        function copiarTexto(btn) {
+            const texto = btn.nextElementSibling.innerText;
+            navigator.clipboard.writeText(texto).then(() => {
+                const originalText = btn.textContent;
+                btn.textContent = '¡Copiado!';
+                btn.style.backgroundColor = '#3b82f6';
+                setTimeout(() => {
+                    btn.textContent = originalText;
+                    btn.style.backgroundColor = '#10b981';
+                }, 2000);
+            });
+        }
 
         function leerArchivoComoArrayBuffer(input) {
             return new Promise((resolve) => {
@@ -107,14 +133,15 @@
                 return;
             }
 
-            // NUEVO: Guardar API Key localmente
+            // Guardar API Key localmente
             localStorage.setItem('gpt4o_api_key', apiKey);
 
             document.getElementById('btnGenerar').disabled = true;
             document.getElementById('loading').style.display = 'block';
+            document.getElementById('respuestasContainer').style.display = 'none';
 
             try {
-                // 1. PROMPT MUY ROBUSTO Y ESTRICTO (INTEGRANDO AMBOS DOCUMENTOS EN EL JSON)
+                // PROMPT MUY ROBUSTO ACTUALIZADO PARA INCLUIR LAS RESPUESTAS DEL FORMULARIO
                 const prompt = `
                 Eres un abogado experto en auditoría de políticas de Google Ads ("Operaciones Comerciales"). 
                 Tu tarea es redactar una apelación impecable, exhaustiva y robusta basada en el HTML provisto. Google rechaza apelaciones resumidas o a medias, por lo que TIENES PROHIBIDO resumir. Debes sonar formal y contundente.
@@ -123,6 +150,7 @@
                 1. Extrae del HTML el Nombre Completo del responsable, el Correo Electrónico, la Ciudad/País y el Nombre del Proyecto. (Si no están, devuelve "NO ENCONTRADO EN EL HTML").
                 2. Para el DOCUMENTO 1: Adapta ESTRICTAMENTE el siguiente borrador base al contexto del HTML proporcionado, manteniendo cada numeración, punto y viñeta, pero aplicando los datos del proyecto real. NO OMITAS NINGÚN PUNTO DEL 1.1 AL 2.6.
                 3. Para el DOCUMENTO 2: Adapta los puntos 1.1 al 2.2 según el servicio específico del HTML.
+                4. NUEVO: Genera las respuestas exactas, EXTENSAS, altamente argumentadas y formales (PROHIBIDO RESUMIR) para las siguientes preguntas del formulario de Google Ads basándote en la información del HTML. Asegúrate de justificar por qué es un sitio transparente. (Preguntas: 12, 13, 14, 15, 19, 25, 27 y 29).
 
                 BORRADOR BASE A SEGUIR Y ADAPTAR (DOCUMENTO 1):
                 "2. Declaración bajo gravedad de juramento
@@ -180,6 +208,16 @@
                         "p_1_3": "[Texto completo de 1.3]",
                         "p_2_1": "[Texto completo de 2.1]",
                         "p_2_2": "[Texto completo de 2.2]"
+                    },
+                    "respuestas_voc": {
+                        "q12": "[Respuesta MUY amplia y argumentada para la pregunta 12 (Describa el tipo de negocio)]",
+                        "q13": "[Respuesta MUY amplia y argumentada para la pregunta 13 (Modelo de negocio, qué hace, clientes)]",
+                        "q14": "[Respuesta MUY amplia y argumentada para la pregunta 14 (Público objetivo detallado)]",
+                        "q15": "[Respuesta MUY amplia y argumentada para la pregunta 15 (Cómo interactúa con el público)]",
+                        "q19": "[Respuesta MUY amplia y argumentada para la pregunta 19 (Cómo recibe el público los servicios)]",
+                        "q25": "[Respuesta amplia y argumentada para la pregunta 25 (Quién paga Google Ads)]",
+                        "q27": "[Respuesta amplia y argumentada para la pregunta 27 (Protección de datos y privacidad)]",
+                        "q29": "[Respuesta amplia y argumentada para la pregunta 29 (Comentarios adicionales, destacando transparencia y fin educativo)]"
                     }
                 }
                 `;
@@ -198,7 +236,7 @@
                 if(!response.ok) throw new Error("Error con la API de OpenAI.");
                 const aiResult = JSON.parse((await response.json()).choices[0].message.content);
 
-                // 2. RECUPERAR DATOS Y PREPARAR VARIABLES
+                // RECUPERAR DATOS Y PREPARAR VARIABLES
                 const nombre = aiResult.datos.nombre.toUpperCase();
                 const correo = aiResult.datos.correo;
                 const ciudad = aiResult.datos.ciudad;
@@ -211,6 +249,43 @@
                     fechaTexto = d.toLocaleDateString('es-CO', { day: '2-digit', month: 'long', year: 'numeric' });
                 }
 
+                // =========================================================================
+                // GENERACIÓN DE UI PARA RESPUESTAS VOC (NUEVO)
+                // =========================================================================
+                const respuestas = aiResult.respuestas_voc;
+                if(respuestas) {
+                    const listHtml = document.getElementById('respuestasList');
+                    listHtml.innerHTML = ''; // Limpiar anteriores
+                    
+                    const titulosPreguntas = {
+                        q12: "12. Describa el tipo de negocio de la empresa.",
+                        q13: "13. Describa el modelo de negocio de la empresa.",
+                        q14: "14. ¿Quiénes son sus clientes o su público objetivo?",
+                        q15: "15. Describa cómo interactúa su empresa con el público objetivo.",
+                        q19: "19. Describa cómo el público objetivo recibe los bienes o servicios promocionados.",
+                        q25: "25. ¿Quién paga la cuenta de Google Ads?",
+                        q27: "27. ¿Cómo protege su empresa la información personal de sus clientes?",
+                        q29: "29. ¿Tiene algún otro comentario o información que pueda ser importante?"
+                    };
+
+                    for (const key in titulosPreguntas) {
+                        if(respuestas[key]) {
+                            listHtml.innerHTML += `
+                                <div class="response-card">
+                                    <h3>${titulosPreguntas[key]}</h3>
+                                    <button class="copy-btn" onclick="copiarTexto(this)">Copiar</button>
+                                    <p>${respuestas[key]}</p>
+                                </div>
+                            `;
+                        }
+                    }
+                    document.getElementById('respuestasContainer').style.display = 'block';
+                }
+
+
+                // =========================================================================
+                // GENERACIÓN DE DOCUMENTOS DOCX (INTACTO)
+                // =========================================================================
                 const { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, WidthType, ImageRun, AlignmentType, Header } = docx;
                 const fontBase = "Arial";
                 const firmaBuffer = await leerArchivoComoArrayBuffer(document.getElementById('firma'));
@@ -220,9 +295,7 @@
                 const createText = (text, isBold = false) => new Paragraph({ children: [new TextRun({ text: text, font: fontBase, size: 21, bold: isBold })], spacing: { after: 100 }, alignment: AlignmentType.JUSTIFIED });
                 const createBullet = (text) => new Paragraph({ children: [new TextRun({ text: text, font: fontBase, size: 21 })], bullet: { level: 0 }, spacing: { after: 80 }, alignment: AlignmentType.JUSTIFIED });
 
-                // =========================================================================
                 // CONSTRUCCIÓN DEL DOCUMENTO 1 (Principal)
-                // =========================================================================
                 const childrenDoc1 = [];
 
                 childrenDoc1.push(
@@ -308,9 +381,7 @@
                     }]
                 });
 
-                // =========================================================================
                 // CONSTRUCCIÓN DEL DOCUMENTO 2 (Anexos Adicionales)
-                // =========================================================================
                 const childrenDoc2 = [];
 
                 childrenDoc2.push(
@@ -385,7 +456,7 @@
 
                 const doc2 = new Document({ sections: [{ properties: {}, children: childrenDoc2 }] });
 
-                // 4. DESCARGAR AMBOS DOCUMENTOS
+                // DESCARGAR AMBOS DOCUMENTOS
                 const blob1 = await Packer.toBlob(doc1);
                 saveAs(blob1, `Declaracion_Principal_${nombre.replace(/\s+/g, '_')}.docx`);
 
