@@ -3,348 +3,238 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Generador de Landings - Google Ads Compliance</title>
+    <title>Generador de Prompts para Landings</title>
     <style>
         :root {
             --primary: #0f172a;
-            --accent: #3b82f6;
+            --accent: #2563eb;
+            --success: #16a34a;
             --bg: #f8fafc;
             --surface: #ffffff;
             --text: #334155;
             --border: #e2e8f0;
         }
 
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            font-family: system-ui, -apple-system, sans-serif;
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; }
+        body { background-color: var(--bg); color: var(--text); line-height: 1.6; padding: 2rem 1rem; }
+        
+        .container { 
+            max-width: 1000px; 
+            margin: 0 auto; 
+            display: grid; 
+            grid-template-columns: 1fr 1fr; 
+            gap: 2rem; 
         }
 
-        body {
-            background-color: var(--bg);
-            color: var(--text);
-            line-height: 1.6;
-            padding: 2rem 1rem;
+        .panel { 
+            background: var(--surface); 
+            padding: 2rem; 
+            border-radius: 12px; 
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03); 
         }
 
-        .container {
-            max-width: 850px;
-            margin: 0 auto;
-            background: var(--surface);
-            padding: 2.5rem;
-            border-radius: 16px;
-            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.01);
-        }
+        h1, h2 { color: var(--primary); font-weight: 700; margin-bottom: 1.5rem; }
+        h1 { font-size: 1.5rem; text-align: center; grid-column: 1 / -1; }
+        h2 { font-size: 1.25rem; border-bottom: 2px solid var(--bg); padding-bottom: 0.5rem; }
 
-        h1 {
-            font-size: 2rem;
-            font-weight: 800;
-            color: var(--primary);
-            text-align: center;
-            letter-spacing: -0.025em;
+        .form-group { display: flex; flex-direction: column; gap: 0.4rem; margin-bottom: 1rem; }
+        label { font-size: 0.9rem; font-weight: 600; color: var(--primary); }
+        input { 
+            width: 100%; 
+            padding: 0.75rem; 
+            border: 1.5px solid var(--border); 
+            border-radius: 8px; 
+            font-size: 0.95rem; 
+            transition: border-color 0.2s; 
+            background: var(--bg); 
         }
+        input:focus { outline: none; border-color: var(--accent); background: #fff; }
 
-        p.subtitle {
-            text-align: center;
-            color: #64748b;
-            margin-bottom: 2.5rem;
-            font-size: 1rem;
-        }
-
-        .form-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 1.5rem;
-        }
-
-        .form-group {
-            display: flex;
-            flex-direction: column;
-            gap: 0.5rem;
-        }
-
-        .form-group.full-width {
-            grid-column: 1 / -1;
-        }
-
-        label {
-            font-size: 0.9rem;
-            font-weight: 600;
-            color: var(--primary);
-        }
-
-        input[type="text"],
-        input[type="email"],
-        input[type="password"] {
+        .prompt-box {
             width: 100%;
-            padding: 0.875rem 1rem;
+            height: 450px;
+            padding: 1rem;
             border: 1.5px solid var(--border);
             border-radius: 8px;
-            font-size: 1rem;
-            transition: all 0.2s ease;
-            background: #f8fafc;
+            background: #f1f5f9;
+            font-family: monospace;
+            font-size: 0.9rem;
+            color: #475569;
+            resize: none;
+            margin-bottom: 1rem;
         }
+        .prompt-box:focus { outline: none; border-color: var(--accent); }
 
-        input:focus {
-            outline: none;
-            border-color: var(--accent);
-            background: #fff;
-            box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
-        }
-
-        .api-section {
-            background: linear-gradient(to right, #eff6ff, #e0e7ff);
-            padding: 1.5rem;
-            border-radius: 12px;
-            margin-bottom: 2.5rem;
-            border: 1px solid #bfdbfe;
-        }
-
-        button {
-            width: 100%;
-            background-color: var(--accent);
-            color: white;
-            padding: 1.25rem;
-            border: none;
-            border-radius: 8px;
-            font-size: 1.1rem;
-            font-weight: 700;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            margin-top: 2rem;
-            box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.3);
-        }
-
-        button:hover {
-            background-color: #2563eb;
-            transform: translateY(-1px);
-            box-shadow: 0 6px 8px -1px rgba(59, 130, 246, 0.4);
-        }
-
-        button:disabled {
-            background-color: #93c5fd;
-            cursor: not-allowed;
-            transform: none;
-            box-shadow: none;
-        }
-
-        #loadingOverlay {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(5px);
-            z-index: 1000;
+        button { 
+            width: 100%; 
+            background-color: var(--accent); 
+            color: white; 
+            padding: 1rem; 
+            border: none; 
+            border-radius: 8px; 
+            font-size: 1.05rem; 
+            font-weight: 700; 
+            cursor: pointer; 
+            transition: background-color 0.2s, transform 0.1s; 
+            display: flex;
             justify-content: center;
             align-items: center;
-            flex-direction: column;
+            gap: 0.5rem;
         }
+        button:hover { background-color: #1d4ed8; }
+        button:active { transform: scale(0.98); }
+        button.success { background-color: var(--success); }
 
-        .loader {
-            width: 60px;
-            height: 60px;
-            border: 5px solid #e2e8f0;
-            border-bottom-color: var(--accent);
-            border-radius: 50%;
-            display: inline-block;
-            box-sizing: border-box;
-            animation: rotation 1s linear infinite;
-            margin-bottom: 1.5rem;
-        }
-
-        @keyframes rotation {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        #statusText {
-            font-size: 1.2rem;
-            font-weight: 700;
-            color: var(--primary);
-            text-align: center;
-            line-height: 1.4;
-        }
-
-        #statusText small {
-            font-size: 0.9rem;
-            font-weight: 400;
-            color: #64748b;
-        }
-
-        .error-msg {
-            color: #991b1b;
-            background: #fef2f2;
-            padding: 1rem;
-            border-radius: 8px;
-            margin-top: 1.5rem;
-            border: 1px solid #fecaca;
-            display: none;
-            font-weight: 500;
-            word-wrap: break-word;
-        }
-
-        @media (max-width: 640px) {
-            .form-grid { grid-template-columns: 1fr; }
-            .container { padding: 1.5rem; }
+        @media (max-width: 768px) {
+            .container { grid-template-columns: 1fr; }
+            .prompt-box { height: 300px; }
         }
     </style>
 </head>
 <body>
 
     <div class="container">
-        <h1>Generador de Landings</h1>
-        <p class="subtitle">Estructura SEO, Diseño y Cumplimiento Estricto</p>
+        <h1>Generador de Prompts - Landings Google Ads</h1>
 
-        <form id="generatorForm">
-            <div class="api-section">
-                <div class="form-group full-width">
-                    <label for="apiKey">OpenAI API Key</label>
-                    <input type="password" id="apiKey" placeholder="sk-..." required>
-                    <small style="color: #64748b; margin-top: 0.25rem;">Se guarda localmente en tu navegador.</small>
-                </div>
-            </div>
-
-            <div class="form-grid">
-                <div class="form-group full-width">
-                    <label for="titulo">Título de la Landing</label>
-                    <input type="text" id="titulo" placeholder="Ej: ConsultasOnline - Clima y Energía" required>
+        <div class="panel">
+            <h2>1. Ingresa los Datos</h2>
+            <form id="dataForm">
+                <div class="form-group">
+                    <label for="titulo">Título de la landing</label>
+                    <input type="text" id="titulo" placeholder="Ej: caribeanfinia-planta">
                 </div>
                 
-                <div class="form-group full-width">
-                    <label for="tema">Tema / Propuesta de Valor</label>
-                    <input type="text" id="tema" placeholder="Ej: Reportes meteorológicos y alertas de radiación solar en el Caribe" required>
+                <div class="form-group">
+                    <label for="tema">Tema de la landing</label>
+                    <input type="text" id="tema" placeholder="Ej: plantar arboles para ahorrar energía">
                 </div>
 
                 <div class="form-group">
-                    <label for="nombre">Nombre y Apellidos</label>
-                    <input type="text" id="nombre" required>
+                    <label for="nombre">Nombre y apellidos</label>
+                    <input type="text" id="nombre" placeholder="Ej: Luis Antonio Castro Paez">
                 </div>
 
                 <div class="form-group">
-                    <label for="correo">Correo Electrónico</label>
-                    <input type="email" id="correo" required>
+                    <label for="correo">Correo electrónico</label>
+                    <input type="email" id="correo" placeholder="Ej: contacto@tudominio.com">
                 </div>
 
                 <div class="form-group">
-                    <label for="direccion">Dirección Física</label>
-                    <input type="text" id="direccion" required>
+                    <label for="direccion">Dirección</label>
+                    <input type="text" id="direccion" placeholder="Ej: Cl. 65 Sur #78H -51">
                 </div>
 
                 <div class="form-group">
                     <label for="telefono">Teléfono</label>
-                    <input type="text" id="telefono" required>
+                    <input type="text" id="telefono" placeholder="Ej: +57 3185264458">
                 </div>
 
-                <div class="form-group full-width">
-                    <label for="ciudad">Ciudad / País</label>
-                    <input type="text" id="ciudad" required>
+                <div class="form-group">
+                    <label for="ciudad">Ciudad / país</label>
+                    <input type="text" id="ciudad" placeholder="Ej: Bogotá, Colombia">
                 </div>
+            </form>
+        </div>
+
+        <div class="panel">
+            <h2>2. Copia tu Prompt</h2>
+            <textarea id="promptOutput" class="prompt-box" readonly></textarea>
+            <button id="copyBtn" type="button">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                Copiar Prompt
+            </button>
+        </div>
+
+        <h2 style="grid-column: 1 / -1; margin-top: 2.5rem; padding-top: 2rem; border-top: 3px dashed var(--border); text-align: center;">
+            3. Generador de Copys y Validador de Políticas (Gemini API)
+        </h2>
+
+        <div class="panel">
+            <h2>Configuración e Input de Landing</h2>
+            
+            <div class="form-group">
+                <label for="geminiKey">Token API de Gemini:</label>
+                <input type="password" id="geminiKey" placeholder="AIzaSy..." autocomplete="off">
+                <div id="geminiApiStatus" style="font-size: 0.85rem; margin-top: 0.2rem; display: none; font-weight: bold;"></div>
+                <button type="button" id="saveGeminiBtn" style="padding: 0.5rem; font-size: 0.9rem; margin-top: 0.5rem; background-color: var(--primary);">Guardar Token Gemini</button>
             </div>
 
-            <div id="errorBox" class="error-msg"></div>
+            <div class="form-group" style="margin-top: 1.5rem;">
+                <label for="landingHtml">Código HTML o texto descriptivo de la Landing:</label>
+                <textarea id="landingHtml" style="width: 100%; height: 260px; padding: 0.75rem; border: 1.5px solid var(--border); border-radius: 8px; font-family: monospace; font-size: 0.9rem; resize: vertical;" placeholder="Pega aquí el código HTML completo de tu landing page para analizarlo y extraer las palabras clave y anuncios obedeciendo los términos de Google Ads..."></textarea>
+            </div>
 
-            <button type="submit" id="generateBtn">Generar Archivos Completos</button>
-        </form>
-    </div>
+            <button type="button" id="analyzeBtn" style="margin-top: 1rem;">
+                Analizar Landing y Generar Copy
+            </button>
+            
+            <div id="geminiLoading" style="display: none; text-align: center; margin-top: 1rem; font-weight: bold; color: var(--accent);">
+                Por favor espera.
+            </div>
+        </div>
 
-    <div id="loadingOverlay">
-        <span class="loader"></span>
-        <p id="statusText">Iniciando proceso...<br><small>Por favor espera.</small></p>
+        <div class="panel" id="geminiResultsPanel">
+            <h2>Resultados del Análisis</h2>
+            <p id="placeholderResultText" style="font-size: 0.95rem; color: #64748b;">Rellena los datos de la izquierda y haz clic en "Analizar Landing y Generar Copy" para ver los resultados.</p>
+            
+            <div id="policyAlertBox" style="display: none; padding: 1rem; border-radius: 8px; font-size: 0.9rem; margin-bottom: 1.5rem; line-height: 1.5;"></div>
+
+            <div id="copyOutputBox" style="display: none; flex-direction: column; gap: 1.5rem;">
+                <div>
+                    <h3 style="font-size: 1rem; color: var(--primary); margin-bottom: 0.5rem;">🔑 Palabras Clave Generadas (15)</h3>
+                    <div id="outputKeywords" style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.4rem; background: #f1f5f9; padding: 1rem; border-radius: 8px; font-size: 0.9rem; font-weight: 500;"></div>
+                </div>
+                
+                <div>
+                    <h3 style="font-size: 1rem; color: var(--primary); margin-bottom: 0.5rem;">📌 Títulos Cumplidores (5) <span style="font-size: 0.8rem; font-weight: normal; color: #64748b;">(Máx 30 caracteres)</span></h3>
+                    <ol id="outputTitles" style="background: #f1f5f9; padding: 1rem 1rem 1rem 2rem; border-radius: 8px; font-size: 0.9rem; display: flex; flex-direction: column; gap: 0.4rem; font-weight: 600;"></ol>
+                </div>
+
+                <div>
+                    <h3 style="font-size: 1rem; color: var(--primary); margin-bottom: 0.5rem;">📝 Descripciones Cumplidoras (4) <span style="font-size: 0.8rem; font-weight: normal; color: #64748b;">(Máx 90 caracteres)</span></h3>
+                    <ol id="outputDescriptions" style="background: #f1f5f9; padding: 1rem 1rem 1rem 2rem; border-radius: 8px; font-size: 0.9rem; display: flex; flex-direction: column; gap: 0.5rem;"></ol>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script>
-        document.addEventListener("DOMContentLoaded", () => {
-            const savedKey = localStorage.getItem("openai_api_key");
-            if (savedKey) {
-                document.getElementById("apiKey").value = savedKey;
-            }
-        });
+        const inputs = document.querySelectorAll('#dataForm input');
+        const promptOutput = document.getElementById('promptOutput');
+        const copyBtn = document.getElementById('copyBtn');
 
-        async function fetchCodeFromOpenAI(apiKey, systemPrompt, userPrompt) {
-            const response = await fetch("https://api.openai.com/v1/chat/completions", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    "Authorization": `Bearer ${apiKey}`
-                },
-                body: JSON.stringify({
-                    model: "gpt-4o",
-                    messages: [
-                        { role: "system", content: systemPrompt },
-                        { role: "user", content: userPrompt }
-                    ],
-                    temperature: 0.6,
-                    max_tokens: 4096 
-                })
-            });
+        // Función que construye el texto del prompt con la estructura exacta
+        function updatePrompt() {
+            const titulo = document.getElementById('titulo').value || '[TÍTULO]';
+            const tema = document.getElementById('tema').value || '[TEMA]';
+            const nombre = document.getElementById('nombre').value || '[NOMBRE]';
+            const correo = document.getElementById('correo').value || '[CORREO]';
+            const direccion = document.getElementById('direccion').value || '[DIRECCIÓN]';
+            const telefono = document.getElementById('telefono').value || '[TELÉFONO]';
+            const ciudad = document.getElementById('ciudad').value || '[CIUDAD/PAÍS]';
 
-            if (!response.ok) {
-                const errData = await response.json();
-                throw new Error(errData.error?.message || "Error en la conexión con la API de OpenAI.");
-            }
+            const template = `Crea una landing page totalmente nueva en HTML, CSS y JS, con diseño original, responsive, rápida y fácil de navegar. Debe estar enfocada en Google Ads y cumplir con los requisitos de destino: la página debe funcionar en móvil y escritorio, ser rastreable, accesible, no tener redirecciones extrañas, no usar pop-ups invasivos y no incluir contenido engañoso.
 
-            const data = await response.json();
-            let content = data.choices[0].message.content;
-            
-            content = content.replace(/^```html\n?/gm, '').replace(/```$/gm, '').trim();
-            return content;
-        }
+Te mandé 3 archivos de ejemplos Para que simplemente te guies.
 
-        function downloadHTML(filename, htmlContent) {
-            if (!htmlContent) return;
-            const blob = new Blob([htmlContent], { type: "text/html" });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement("a");
-            a.href = url;
-            a.download = filename;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-        }
+Genera estos archivos:
+- index.html con estilos y js en el mismo index
+- politica-de-privacidad.html
+- terminos-y-condiciones.html
+(todos vinculados entre sí)
 
-        document.getElementById('generatorForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            
-            const apiKey = document.getElementById("apiKey").value.trim();
-            const titulo = document.getElementById("titulo").value.trim();
-            const tema = document.getElementById("tema").value.trim();
-            const nombre = document.getElementById("nombre").value.trim();
-            const correo = document.getElementById("correo").value.trim();
-            const direccion = document.getElementById("direccion").value.trim();
-            const telefono = document.getElementById("telefono").value.trim();
-            const ciudad = document.getElementById("ciudad").value.trim();
-
-            localStorage.setItem("openai_api_key", apiKey);
-
-            const overlay = document.getElementById("loadingOverlay");
-            const statusText = document.getElementById("statusText");
-            const btn = document.getElementById("generateBtn");
-            const errorBox = document.getElementById("errorBox");
-            
-            overlay.style.display = "flex";
-            btn.disabled = true;
-            errorBox.style.display = "none";
-
-            // SYSTEM PROMPT A PRUEBA DE FALLOS - OBLIGA A ENTREGAR CÓDIGO COMPLETO
-            const baseSystemPrompt = `
-Eres un Desarrollador Web Full-Stack Senior, experto en UI/UX y Copywriter especialista en Google Ads.
-Tu única tarea es generar CÓDIGO HTML COMPLETO, EXTENSO Y 100% FUNCIONAL.
-REGLA ABSOLUTA 1: TIENES PROHIBIDO CORTAR EL CÓDIGO. Nunca uses comentarios como "// resto del código aquí". Dame el código completo ya funcional, desde la etiqueta <!DOCTYPE html> hasta </html>.
-REGLA ABSOLUTA 2: PROHIBIDO SER PEREZOSO. Debes redactar textos reales, persuasivos y extensos para cada sección. No uses "Lorem Ipsum" ni dejes secciones vacías.
-Tu respuesta debe contener ÚNICAMENTE el código fuente, sin saludos ni explicaciones.
-`;
-
-            try {
-                // PETICIÓN 1: INDEX.HTML ULTRA PROFESIONAL
-                statusText.innerHTML = `Paso 1 de 3: Generando index.html...<br><small>Construyendo diseño Premium, SEO y textos extensos</small>`;
-                
-                const indexPrompt = `
-Crea una landing page totalmente nueva en HTML, CSS y JS, con diseño original, responsive, rápida y fácil de navegar. Debe estar enfocada en Google Ads y cumplir con los requisitos de destino: funcionar en móvil y escritorio, ser rastreable, accesible, sin redirecciones extrañas, sin pop-ups invasivos y sin contenido engañoso. TODO EN UN SOLO ARCHIVO INDEX.HTML.
+La landing debe incluir estas secciones:
+- SEO TOTALMTENTE PROFESIONAL con todos los datos. SEO On-page: Optimización dentro de la web, incluyendo palabras clave, títulos, meta descripciones y calidad del contenido.
+SEO Técnico: Mejorar la estructura, velocidad de carga y rastreabilidad del sitio para los motores de búsqueda.
+SEO Off-page: Acciones externas, principalmente la consecución de enlaces de calidad (linkbuilding) para aumentar la autoridad
+ 
+- Hero con título, subtítulo y CTA
+- Beneficios
+- Servicios o propuesta de valor
+- Prueba social
+- Formulario de contacto
+- Información de empresa y transparencia
+- Footer con datos legales
 
 Datos del negocio:
 - Título de la landing: ${titulo}
@@ -355,80 +245,232 @@ Datos del negocio:
 - Teléfono: ${telefono}
 - Ciudad / país: ${ciudad}
 - Horario de atención: todos los días de la semana de 8:00am a 5:00pm
+- CTA principal: Genera el CTA según el titulo y el tema elegido arriba.
 
-La landing debe ser EXTENSA y PROFESIONAL, incluyendo OBLIGATORIAMENTE estas secciones con textos reales y persuasivos:
-1. SEO TOTALMENTE PROFESIONAL: Optimización On-page incluyendo etiquetas meta (description, keywords, author), Open Graph para redes sociales, y estructura semántica impecable (H1 único, H2, H3).
-2. Hero Section: Imagen de fondo espectacular (usa url('https://picsum.photos/seed/${encodeURIComponent(tema.split(' ')[0])}/1920/1080') con un degradado oscuro encima para que el texto sea legible), título impactante, subtítulo claro y un CTA PRINCIPAL DINÁMICO. (Ej: Si el tema es "Clases de baile", el CTA debe ser "Reserva tu clase gratis", no "Más información").
-3. Beneficios: Un grid moderno (mínimo 3 columnas) con iconos SVG inline, títulos y descripciones detalladas de al menos 3 líneas cada una.
-4. Servicios o propuesta de valor: Diseño alternado (imagen a un lado, texto abundante y persuasivo al otro).
-5. Prueba social: Mínimo 3 testimonios realistas, honestos y verificables con diseño de tarjeta. (No usar afirmaciones exageradas, ni falsas).
-6. Formulario de contacto: Diseño limpio, moderno, con inputs bien espaciados y botón llamativo.
-7. Información de empresa y transparencia: Muestra claramente los datos de contacto y el horario de atención para cumplir con la transparencia de Google Ads.
-8. Footer con datos legales: Copyright, datos de contacto y OBLIGATORIAMENTE enlaces funcionales a "politica-de-privacidad.html" y "terminos-y-condiciones.html".
+Ejemplo aplicado a Google Ads:
+Si el tema dice: "Clases de baile en Bogotá - Primera clase gratis"
+El CTA debería ser algo como: "Reserva tu primera clase gratis"
+No algo genérico como: "Más información"
 
-REQUISITOS TÉCNICOS DE DISEÑO:
-- Importa una tipografía moderna de Google Fonts (Ej: 'Inter' o 'Poppins').
-- El CSS debe ser complejo y moderno: usa variables nativas, Flexbox/Grid, sombras suaves (box-shadow), bordes redondeados (border-radius), y transiciones hover. No me des un CSS de 20 líneas, quiero un diseño a nivel de agencia.
-- El JS debe incluir un menú de navegación sticky (fijo al hacer scroll) que cambie de color, y animaciones de scroll (IntersectionObserver) para que los elementos vayan apareciendo suavemente (fade-in) a medida que el usuario baja.
-- El código debe estar listo para copiar y pegar, 100% COMPLETO.
-`;
-                const indexHTML = await fetchCodeFromOpenAI(apiKey, baseSystemPrompt, indexPrompt);
-                downloadHTML("index.html", indexHTML);
+Requisitos:
+- El contenido debe ser original, claro y honesto.
+- No usar afirmaciones exageradas, falsas ni no verificables.
+- No usar testimonios inventados, urgencia falsa ni conteos falsos.
+- No usar recursos bloqueados, scripts sospechosos ni librerías innecesarias.
+- No usar URLs distintas, cloaking ni redirecciones a otro dominio.
+- Debe verse profesional y coherente con el anuncio.
+- Debe incluir aviso de privacidad y términos si aplica.
+- Debe entregar código listo para copiar y pegar.
+- Que el diseño de los 3 archivos sean acordes entre si.
+- Que la información de los 3 archivos sean acordes entre si.`;
 
-                // PETICIÓN 2: POLÍTICA DE PRIVACIDAD
-                statusText.innerHTML = `Paso 2 de 3: Generando Política de Privacidad...<br><small>Redactando términos legales estrictos</small>`;
+            promptOutput.value = template;
+        }
+
+        // Escuchar cambios en los inputs para actualizar en tiempo real
+        inputs.forEach(input => {
+            input.addEventListener('input', updatePrompt);
+        });
+
+        // Lógica del botón copiar
+        copyBtn.addEventListener('click', () => {
+            promptOutput.select();
+            promptOutput.setSelectionRange(0, 99999); // Para móviles
+            
+            navigator.clipboard.writeText(promptOutput.value).then(() => {
+                const originalText = copyBtn.innerHTML;
+                copyBtn.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg> ¡Copiado con éxito!`;
+                copyBtn.classList.add('success');
                 
-                const privPrompt = `
-Genera la página "politica-de-privacidad.html".
-Datos del responsable:
-- Anunciante: ${nombre}
-- Correo: ${correo}
-- Dirección: ${direccion}, ${ciudad}
-- Teléfono: ${telefono}
-
-Instrucciones:
-- TIENES PROHIBIDO RESUMIR ESTE DOCUMENTO. Debe ser un documento legal extenso, con múltiples artículos detallados (Identidad, Propósito, Recopilación, Uso, Derechos).
-- Cumplimiento de Hábeas Data.
-- Usa estilos CSS coherentes y profesionales, con el mismo tipo de fuente que la landing.
-- Incluye un botón o enlace visible para volver a "index.html".
-- Dame el código HTML completo y funcional, sin saltarte líneas.
-`;
-                const privacidadHTML = await fetchCodeFromOpenAI(apiKey, baseSystemPrompt, privPrompt);
-                downloadHTML("politica-de-privacidad.html", privacidadHTML);
-
-                // PETICIÓN 3: TÉRMINOS Y CONDICIONES
-                statusText.innerHTML = `Paso 3 de 3: Generando Términos y Condiciones...<br><small>Finalizando documentos</small>`;
-                
-                const termPrompt = `
-Genera la página "terminos-y-condiciones.html".
-Datos del responsable:
-- Anunciante: ${nombre}
-- Correo: ${correo}
-- Dirección: ${direccion}, ${ciudad}
-
-Instrucciones:
-- TIENES PROHIBIDO RESUMIR ESTE DOCUMENTO. Debe ser un contrato extenso, formal y contundente para evitar suspensiones por prácticas inaceptables en Google Ads.
-- Exonera responsabilidades y aclara el carácter puramente orientativo/comercial del sitio.
-- Usa estilos CSS coherentes y profesionales, con el mismo tipo de fuente.
-- Incluye un botón o enlace visible para volver a "index.html".
-- Dame el código HTML completo y funcional, sin saltarte líneas.
-`;
-                const terminosHTML = await fetchCodeFromOpenAI(apiKey, baseSystemPrompt, termPrompt);
-                downloadHTML("terminos-y-condiciones.html", terminosHTML);
-
-                // FIN
-                statusText.innerHTML = `¡Completado!<br><small>Archivos descargados con éxito.</small>`;
                 setTimeout(() => {
-                    overlay.style.display = "none";
-                    btn.disabled = false;
+                    copyBtn.innerHTML = originalText;
+                    copyBtn.classList.remove('success');
                 }, 2000);
+            }).catch(err => {
+                console.error('Error al copiar: ', err);
+            });
+        });
+
+        // Inicializar con los placeholders por defecto
+        updatePrompt();
+
+
+        // ==========================================
+        // LÓGICA AGREGADA: APARTADO GEMINI API
+        // ==========================================
+
+        document.addEventListener("DOMContentLoaded", () => {
+            const savedGeminiKey = localStorage.getItem("gemini_api_key");
+            if (savedGeminiKey) {
+                document.getElementById("geminiKey").value = savedGeminiKey;
+            }
+        });
+
+        document.getElementById("saveGeminiBtn").addEventListener("click", () => {
+            const key = document.getElementById("geminiKey").value.trim();
+            const statusDiv = document.getElementById("geminiApiStatus");
+            if (key) {
+                localStorage.setItem("gemini_api_key", key);
+                statusDiv.textContent = "Token de Gemini guardado exitosamente en el navegador.";
+                statusDiv.style.color = "var(--success)";
+            } else {
+                localStorage.removeItem("gemini_api_key");
+                statusDiv.textContent = "Token de Gemini eliminado.";
+                statusDiv.style.color = "red";
+            }
+            statusDiv.style.display = "block";
+            setTimeout(() => { statusDiv.style.display = "none"; }, 3000);
+        });
+
+        document.getElementById("analyzeBtn").addEventListener("click", async () => {
+            const apiKey = document.getElementById("geminiKey").value.trim();
+            const htmlData = document.getElementById("landingHtml").value.trim();
+
+            if (!apiKey) {
+                alert("Por favor, ingresa y guarda tu Token de Gemini primero.");
+                return;
+            }
+            if (!htmlData) {
+                alert("Por favor, ingresa el código HTML o texto descriptivo de la landing.");
+                return;
+            }
+
+            const btn = document.getElementById("analyzeBtn");
+            const loading = document.getElementById("geminiLoading");
+            const placeholderText = document.getElementById("placeholderResultText");
+            const policyBox = document.getElementById("policyAlertBox");
+            const copyBox = document.getElementById("copyOutputBox");
+
+            btn.disabled = true;
+            loading.style.display = "block";
+            placeholderText.style.display = "none";
+            policyBox.style.display = "none";
+            copyBox.style.display = "none";
+
+            // Prompt maestro con los requisitos exactos de Google Ads solicitados
+            const systemPrompt = `Eres un auditor experto de políticas de Google Ads y un copywriter publicitario de alto rendimiento. Tu tarea es analizar el código HTML o el texto de la landing page que te proporcione el usuario.
+
+Debes realizar dos acciones fundamentales de forma sumamente rigurosa:
+
+1. DETECCIÓN DE CONTENIDO RESTRINGIDO O PROHIBIDO:
+Evalúa si la landing pertenece o toca temas sensibles que requieran licencias, certificaciones o estén totalmente prohibidos:
+- Juegos de Apuestas y Casinos (Gambling): Casinos online/físicos, apuestas, póker, loterías, bonos.
+- Salud y Medicamentos: Farmacias, medicamentos recetados, suplementos con ingredientes prohibidos (como la efedrina), adicciones.
+- Servicios Financieros: Préstamos, inversiones, reparación de crédito. Prohibidas opciones binarias y payday loans de APR abusivos.
+- Criptomonedas y Activos Digitales: Exchanges, wallets. Prohibidas las ICOs.
+- Contenido Político: Partidos, candidatos, causas de interés público.
+- Alcohol: Cervezas, vinos, licores.
+- Contenido Sexual: Citas casuales, juguetes sexuales, lencería sugestiva. (Pornografía estrictamente prohibida).
+
+2. GENERACIÓN DE COPY PUBLICITARIO CON REQUISITOS EDITORIALES ESTRICTOS:
+Genera exactamente:
+- 15 Palabras clave ideales para campañas de búsqueda.
+- 5 Títulos persuasivos (Cada uno con una longitud MÁXIMA de 30 caracteres).
+- 4 Descripciones convincentes (Cada una con una longitud MÁXIMA de 90 caracteres).
+
+REGLAS EDITORIALES CRÍTICAS PARA TÍTULOS Y DESCRIPCIONES (Para evitar rechazos automáticos):
+- CERO PUNTUACIÓN EXCESIVA: No uses múltiples signos de exclamación ni interrogación (Ej: Prohibido "¡¡¡Compra ya!!!"). Máximo uno por elemento si es indispensable.
+- CERO SÍMBOLOS EXTRAÑOS: No utilices caracteres especiales para engañar al sistema (Ej: Prohibido usar "g@n$", "gr4tis").
+- CERO MAYÚSCULAS INJUSTIFICADAS: No escribas palabras separadas por espacios o completamente en mayúsculas (Ej: Prohibido "G R A T I S" o "COMPRA HOY"). Usa capitalización estándar normal.
+
+Devuelve tu respuesta ÚNICAMENTE en formato JSON válido con la siguiente estructura exacta:
+{
+  "analisis_politicas": {
+    "es_limitado_o_prohibido": true o false,
+    "categoria_detectada": "Nombre de la categoría si es true, o 'Ninguna' si es false",
+    "detalles_advertencia": "Explicación detallada de las limitaciones, si requiere licencias gubernamentales, certificaciones ante Google, advertencia de exención de responsabilidad, o si viola por completo las políticas del canal. Si está libre de peligro, felicítalo indicando que cumple.",
+    "cumple_requisitos_editoriales_landing": true o false
+  },
+  "palabras_clave": ["kw1", "kw2", "... hasta 15 elementos"],
+  "titulos": ["titulo 1", "... hasta 5 elementos"],
+  "descripciones": ["descripcion 1", "... hasta 4 elementos"]
+}`;
+
+            const finalPrompt = `${systemPrompt}\n\n[CÓDIGO / TEXTO DE LA LANDING A ANALIZAR]:\n${htmlData}`;
+
+            try {
+                // Llamada simplificada a la API de Gemini (sin generationConfig conflictivo)
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        contents: [{
+                            parts: [{ text: finalPrompt }]
+                        }]
+                    })
+                });
+
+                if (!response.ok) {
+                    const err = await response.json();
+                    throw new Error(err.error?.message || "Error al conectar con Gemini API");
+                }
+
+                const data = await response.json();
+                
+                // Limpiamos la respuesta por si el modelo incluye marcas de formato Markdown como ```json ... ```
+                let jsonText = data.candidates[0].content.parts[0].text;
+                jsonText = jsonText.replace(/```json/g, "").replace(/```/g, "").trim();
+                
+                const result = JSON.parse(jsonText);
+
+                // 1. Mostrar estado de Políticas de Google Ads
+                policyBox.style.display = "block";
+                if (result.analisis_politicas.es_limitado_o_prohibido) {
+                    policyBox.style.backgroundColor = "#fee2e2";
+                    policyBox.style.border = "1px solid #f87171";
+                    policyBox.style.color = "#991b1b";
+                    policyBox.innerHTML = `<strong>⚠️ CONTENIDO RESTRINGIDO / PROHIBIDO DETECTADO:</strong><br>
+                                           <strong>Categoría:</strong> ${result.analisis_politicas.categoria_detectada}<br>
+                                           <strong>Requisitos/Restricciones:</strong> ${result.analisis_politicas.detalles_advertencia}`;
+                } else {
+                    policyBox.style.backgroundColor = "#dcfce7";
+                    policyBox.style.border = "1px solid #4ade80";
+                    policyBox.style.color = "#166534";
+                    policyBox.innerHTML = `<strong>✅ CATEGORÍA GENERAL PERMITIDA:</strong><br>${result.analisis_politicas.detalles_advertencia}`;
+                }
+
+                // 2. Renderizar Palabras Clave
+                const kwContainer = document.getElementById("outputKeywords");
+                kwContainer.innerHTML = "";
+                result.palabras_clave.forEach(kw => {
+                    const span = document.createElement("span");
+                    span.style.background = "#fff";
+                    span.style.padding = "0.3rem 0.6rem";
+                    span.style.borderRadius = "4px";
+                    span.style.border = "1px solid var(--border)";
+                    span.textContent = kw;
+                    kwContainer.appendChild(span);
+                });
+
+                // 3. Renderizar Títulos
+                const titlesContainer = document.getElementById("outputTitles");
+                titlesContainer.innerHTML = "";
+                result.titulos.forEach(tituloStr => {
+                    const li = document.createElement("li");
+                    li.innerHTML = `${tituloStr} <span style="font-weight: normal; color:#64748b; font-size:0.8rem; margin-left:8px;">(${tituloStr.length} carac.)</span>`;
+                    titlesContainer.appendChild(li);
+                });
+
+                // 4. Renderizar Descripciones
+                const descContainer = document.getElementById("outputDescriptions");
+                descContainer.innerHTML = "";
+                result.descripciones.forEach(descStr => {
+                    const li = document.createElement("li");
+                    li.innerHTML = `${descStr} <span style="color:#64748b; font-size:0.8rem; margin-left:8px;">(${descStr.length} carac.)</span>`;
+                    descContainer.appendChild(li);
+                });
+
+                copyBox.style.display = "flex";
 
             } catch (error) {
                 console.error(error);
-                errorBox.textContent = `Error: ${error.message}`;
-                errorBox.style.display = "block";
-                overlay.style.display = "none";
+                alert("Hubo un fallo procesando la información con Gemini: " + error.message);
+                placeholderText.style.display = "block";
+            } finally {
                 btn.disabled = false;
+                loading.style.display = "none";
             }
         });
     </script>
