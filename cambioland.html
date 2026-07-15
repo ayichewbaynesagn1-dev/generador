@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Transformador Educativo de Landings HTML</title>
+    <style>
+        :root {
+            --primary: #0f172a;
+            --accent: #2563eb;
+            --success: #16a34a;
+            --danger: #ef4444;
+            --bg: #f8fafc;
+            --surface: #ffffff;
+            --text: #334155;
+            --border: #e2e8f0;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; }
+        body { background-color: var(--bg); color: var(--text); line-height: 1.6; padding: 2rem 1rem; }
+        
+        .container { 
+            max-width: 1200px; 
+            margin: 0 auto; 
+            display: flex;
+            flex-direction: column;
+            gap: 2rem; 
+        }
+
+        .panel { 
+            background: var(--surface); 
+            padding: 2rem; 
+            border-radius: 12px; 
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03); 
+        }
+
+        h1, h2, h3 { color: var(--primary); font-weight: 700; margin-bottom: 1.5rem; }
+        h1 { font-size: 1.8rem; text-align: center; }
+        h2 { font-size: 1.25rem; border-bottom: 2px solid var(--bg); padding-bottom: 0.5rem; }
+
+        .form-group { display: flex; flex-direction: column; gap: 0.4rem; margin-bottom: 1.5rem; }
+        label { font-size: 0.95rem; font-weight: 600; color: var(--primary); }
+        
+        input, select, textarea { 
+            width: 100%; 
+            padding: 0.75rem; 
+            border: 1.5px solid var(--border); 
+            border-radius: 8px; 
+            font-size: 0.95rem; 
+            transition: border-color 0.2s, background-color 0.2s; 
+            background: var(--bg); 
+            color: var(--text);
+        }
+        input:focus, select:focus, textarea:focus { outline: none; border-color: var(--accent); background: #fff; }
+        
+        .code-box {
+            height: 250px;
+            font-family: monospace;
+            font-size: 0.85rem;
+            resize: vertical;
+            white-space: pre;
+            overflow-wrap: normal;
+            overflow-x: auto;
+        }
+
+        .grid-3 {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+        }
+
+        button { 
+            width: 100%; 
+            background-color: var(--accent); 
+            color: white; 
+            padding: 1rem; 
+            border: none; 
+            border-radius: 8px; 
+            font-size: 1.05rem; 
+            font-weight: 700; 
+            cursor: pointer; 
+            transition: background-color 0.2s, transform 0.1s, opacity 0.2s; 
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        button:hover:not(:disabled) { background-color: #1d4ed8; }
+        button:active:not(:disabled) { transform: scale(0.98); }
+        button.success { background-color: var(--success); }
+        button:disabled { background-color: var(--danger); cursor: not-allowed; opacity: 0.9; }
+
+        .copy-btn {
+            background-color: var(--primary);
+            padding: 0.5rem;
+            font-size: 0.9rem;
+            margin-top: 0.5rem;
+        }
+        .copy-btn:hover:not(:disabled) { background-color: #334155; }
+
+        #geminiLoading { display: none; text-align: center; font-weight: bold; color: var(--accent); margin-top: 1rem; }
+        
+        .api-setup { background: #e0f2fe; border: 1px solid #bae6fd; padding: 1.5rem; border-radius: 8px; margin-bottom: 2rem;}
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Transformador Educativo de Landings HTML</h1>
+
+        <!-- CONFIGURACIÓN API -->
+        <div class="api-setup">
+            <div class="form-group" style="margin-bottom: 0;">
+                <label for="geminiKey">Token API de Gemini:</label>
+                <div style="display: flex; gap: 1rem;">
+                    <input type="password" id="geminiKey" placeholder="Ingresa tu API Key (AIzaSy...)" autocomplete="off">
+                    <button type="button" id="saveGeminiBtn" style="width: auto; padding: 0 1.5rem;">Guardar</button>
+                </div>
+                <div id="geminiApiStatus" style="font-size: 0.85rem; margin-top: 0.5rem; font-weight: bold; display: none;"></div>
+            </div>
+        </div>
+
+        <div class="panel">
+            <h2>1. Configuración del Tema</h2>
+            <div class="form-group">
+                <label for="temaSelect">Selecciona el tema de la Landing</label>
+                <select id="temaSelect">
+                    <option value="" disabled selected>-- Elige una opción --</option>
+                    <option value="Factura Acueducto">Factura Acueducto</option>
+                    <option value="Factura de energía">Factura de energía</option>
+                    <option value="Factura de gas">Factura de gas</option>
+                    <option value="Factura de internet">Factura de internet</option>
+                    <option value="otro">Otro (Especificar)</option>
+                </select>
+            </div>
+            
+            <div class="form-group" id="otroTemaContainer" style="display: none;">
+                <label for="otroTemaInput">Especifica el tema</label>
+                <input type="text" id="otroTemaInput" placeholder="Ej: Instructivo de declaración de impuestos">
+            </div>
+        </div>
+
+        <div class="panel">
+            <h2>2. Ingresa los Códigos HTML Originales</h2>
+            <p style="font-size: 0.9rem; margin-bottom: 1rem; color: #64748b;">Pega aquí el código base. Se respetará la estructura (divs, clases, ids, css) y se modificará el contenido de texto adaptándolo al tema.</p>
+            
+            <div class="grid-3">
+                <div class="form-group">
+                    <label for="inputIndex">HTML - Index</label>
+                    <textarea id="inputIndex" class="code-box" placeholder="Pega el index.html original aquí..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="inputPrivacidad">HTML - Privacidad</label>
+                    <textarea id="inputPrivacidad" class="code-box" placeholder="Pega el politica-de-privacidad.html aquí..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="inputTerminos">HTML - Términos</label>
+                    <textarea id="inputTerminos" class="code-box" placeholder="Pega el terminos-y-condiciones.html aquí..."></textarea>
+                </div>
+            </div>
+
+            <button type="button" id="transformBtn" style="margin-top: 1.5rem;">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"></path><path d="M5 3v4"></path><path d="M19 17v4"></path><path d="M3 5h4"></path><path d="M17 19h4"></path></svg>
+                Transformar HTML al nuevo tema
+            </button>
+            <div id="geminiLoading">Generando nuevos códigos, manteniendo estructura original... Esto tomará unos segundos.</div>
+        </div>
+
+        <div class="panel" id="resultsPanel" style="display: none;">
+            <h2>3. Códigos HTML Generados</h2>
+            <p style="font-size: 0.9rem; margin-bottom: 1.5rem; color: #16a34a; font-weight: bold;">¡Generación exitosa! Los códigos incluyen el descargo de responsabilidad educativo.</p>
+            
+            <div class="grid-3">
+                <div class="form-group">
+                    <label>Nuevo HTML - Index</label>
+                    <textarea id="outputIndex" class="code-box" readonly></textarea>
+                    <button class="copy-btn" onclick="copyToClipboard('outputIndex', this)">Copiar Index</button>
+                </div>
+                <div class="form-group">
+                    <label>Nuevo HTML - Privacidad</label>
+                    <textarea id="outputPrivacidad" class="code-box" readonly></textarea>
+                    <button class="copy-btn" onclick="copyToClipboard('outputPrivacidad', this)">Copiar Privacidad</button>
+                </div>
+                <div class="form-group">
+                    <label>Nuevo HTML - Términos</label>
+                    <textarea id="outputTerminos" class="code-box" readonly></textarea>
+                    <button class="copy-btn" onclick="copyToClipboard('outputTerminos', this)">Copiar Términos</button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // Lógica de UI - Mostrar/Ocultar "Otro"
+        const temaSelect = document.getElementById('temaSelect');
+        const otroTemaContainer = document.getElementById('otroTemaContainer');
+        const otroTemaInput = document.getElementById('otroTemaInput');
+
+        temaSelect.addEventListener('change', (e) => {
+            if (e.target.value === 'otro') {
+                otroTemaContainer.style.display = 'flex';
+            } else {
+                otroTemaContainer.style.display = 'none';
+                otroTemaInput.value = '';
+            }
+        });
+
+        // Lógica Guardar Token
+        document.addEventListener("DOMContentLoaded", () => {
+            const savedGeminiKey = localStorage.getItem("gemini_api_key");
+            if (savedGeminiKey) document.getElementById("geminiKey").value = savedGeminiKey;
+        });
+
+        document.getElementById("saveGeminiBtn").addEventListener("click", () => {
+            const key = document.getElementById("geminiKey").value.trim();
+            const statusDiv = document.getElementById("geminiApiStatus");
+            if (key) {
+                localStorage.setItem("gemini_api_key", key);
+                statusDiv.textContent = "Token guardado exitosamente.";
+                statusDiv.style.color = "var(--success)";
+            } else {
+                localStorage.removeItem("gemini_api_key");
+                statusDiv.textContent = "Token eliminado.";
+                statusDiv.style.color = "var(--danger)";
+            }
+            statusDiv.style.display = "block";
+            setTimeout(() => { statusDiv.style.display = "none"; }, 3000);
+        });
+
+        // Copiar al portapapeles
+        function copyToClipboard(elementId, btnElement) {
+            const el = document.getElementById(elementId);
+            el.select();
+            el.setSelectionRange(0, 999999);
+            navigator.clipboard.writeText(el.value).then(() => {
+                const originalText = btnElement.innerText;
+                btnElement.innerText = "¡Copiado!";
+                btnElement.classList.add('success');
+                setTimeout(() => {
+                    btnElement.innerText = originalText;
+                    btnElement.classList.remove('success');
+                }, 2000);
+            });
+        }
+
+        // Transformación de HTML via Gemini
+        const transformBtn = document.getElementById('transformBtn');
+        
+        transformBtn.addEventListener('click', async () => {
+            const apiKey = document.getElementById("geminiKey").value.trim();
+            
+            let temaFinal = temaSelect.value;
+            if (temaFinal === 'otro') temaFinal = otroTemaInput.value.trim();
+
+            const htmlIndex = document.getElementById("inputIndex").value.trim();
+            const htmlPriv = document.getElementById("inputPrivacidad").value.trim();
+            const htmlTerm = document.getElementById("inputTerminos").value.trim();
+
+            // Validaciones
+            if (!apiKey) return alert("Por favor, guarda tu Token de Gemini primero.");
+            if (!temaFinal) return alert("Por favor, selecciona o escribe un tema.");
+            if (!htmlIndex || !htmlPriv || !htmlTerm) return alert("Debes ingresar los 3 códigos HTML originales.");
+
+            // UI feedback
+            transformBtn.disabled = true;
+            document.getElementById("geminiLoading").style.display = "block";
+            document.getElementById("resultsPanel").style.display = "none";
+
+            // Prompt del Sistema
+            const systemPrompt = `Eres un desarrollador web experto. Tu tarea es reescribir los textos de 3 archivos HTML (Index, Política de Privacidad y Términos) para adaptarlos a un nuevo tema.
+
+REGLAS ESTRICTAS:
+1. NO OMITAS NADA DE ESTRUCTURA: Debes conservar exactamente las mismas etiquetas HTML, clases CSS, IDs, atributos, scripts y estilos en línea originales. SOLO modifica el contenido de texto visible, atributos 'alt', 'title' y 'placeholder'.
+2. TEMA OBLIGATORIO: Adapta todo el texto al tema: "${temaFinal}". Varía tu redacción para que sea creativa, extensa, informativa, como un blog instructivo o paso a paso. No generes textos genéricos.
+3. AVISO LEGAL OBLIGATORIO: Debes dejar explícitamente claro en partes visibles (hero, footer y textos legales) que este es un SITIO EXCLUSIVAMENTE EDUCATIVO, a modo de tutorial, y que "NO intenta suplantar a ninguna entidad oficial, pública ni privada".
+4. FORMATO DE RESPUESTA: Devuelve ÚNICAMENTE un objeto JSON válido. Sin markdown \`\`\`json, sin texto adicional, solo el JSON puro con esta estructura exacta:
+{
+  "index": "<!DOCTYPE html>...",
+  "privacidad": "<!DOCTYPE html>...",
+  "terminos": "<!DOCTYPE html>..."
+}`;
+
+            const userPrompt = `Aquí tienes los 3 códigos HTML a transformar para el tema "${temaFinal}":
+
+--- HTML INDEX ---
+${htmlIndex}
+
+--- HTML PRIVACIDAD ---
+${htmlPriv}
+
+--- HTML TERMINOS ---
+${htmlTerm}`;
+
+            try {
+                // Usando Gemini 2.5 Flash
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        system_instruction: { parts: [{ text: systemPrompt }] },
+                        contents: [{ parts: [{ text: userPrompt }] }],
+                        generationConfig: {
+                            temperature: 0.7, // Para dar variación a los textos
+                            response_mime_type: "application/json" // Fuerza retorno JSON estricto
+                        }
+                    })
+                });
+
+                if (!response.ok) {
+                    const err = await response.json();
+                    throw new Error(err.error?.message || "Error al conectar con Gemini API");
+                }
+
+                const data = await response.json();
+                let jsonText = data.candidates[0].content.parts[0].text;
+                const result = JSON.parse(jsonText);
+
+                // Rellenar Resultados
+                document.getElementById("outputIndex").value = result.index;
+                document.getElementById("outputPrivacidad").value = result.privacidad;
+                document.getElementById("outputTerminos").value = result.terminos;
+
+                // Mostrar panel
+                document.getElementById("resultsPanel").style.display = "block";
+                
+                // Hacer scroll a resultados
+                document.getElementById("resultsPanel").scrollIntoView({ behavior: 'smooth' });
+
+            } catch (error) {
+                console.error(error);
+                alert("Hubo un fallo procesando la información con Gemini: " + error.message);
+            } finally {
+                transformBtn.disabled = false;
+                document.getElementById("geminiLoading").style.display = "none";
+            }
+        });
+    </script>
+</body>
+</html>
