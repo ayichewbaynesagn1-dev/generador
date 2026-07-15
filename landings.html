@@ -9,6 +9,7 @@
             --primary: #0f172a;
             --accent: #2563eb;
             --success: #16a34a;
+            --danger: #ef4444;
             --bg: #f8fafc;
             --surface: #ffffff;
             --text: #334155;
@@ -45,11 +46,14 @@
             border: 1.5px solid var(--border); 
             border-radius: 8px; 
             font-size: 0.95rem; 
-            transition: border-color 0.2s; 
+            transition: border-color 0.2s, background-color 0.2s; 
             background: var(--bg); 
             color: var(--text);
         }
         input:focus, select:focus { outline: none; border-color: var(--accent); background: #fff; }
+        input.error-input { border-color: var(--danger); background: #fef2f2; }
+
+        .error-msg { color: var(--danger); font-size: 0.8rem; font-weight: bold; margin-top: -0.2rem; display: none; }
 
         .prompt-box {
             width: 100%;
@@ -76,15 +80,16 @@
             font-size: 1.05rem; 
             font-weight: 700; 
             cursor: pointer; 
-            transition: background-color 0.2s, transform 0.1s; 
+            transition: background-color 0.2s, transform 0.1s, opacity 0.2s; 
             display: flex;
             justify-content: center;
             align-items: center;
             gap: 0.5rem;
         }
-        button:hover { background-color: #1d4ed8; }
-        button:active { transform: scale(0.98); }
+        button:hover:not(:disabled) { background-color: #1d4ed8; }
+        button:active:not(:disabled) { transform: scale(0.98); }
         button.success { background-color: var(--success); }
+        button:disabled { background-color: var(--danger); cursor: not-allowed; opacity: 0.9; }
 
         @media (max-width: 768px) {
             .container { grid-template-columns: 1fr; }
@@ -103,6 +108,7 @@
                 <div class="form-group">
                     <label for="titulo">Título de la landing</label>
                     <input type="text" id="titulo" placeholder="Ej: Titulo de landing">
+                    <span id="tituloError" class="error-msg">⚠️ Contiene palabras prohibidas (salud, finanzas, apuestas).</span>
                 </div>
                 
                 <div class="form-group">
@@ -163,7 +169,7 @@
             <textarea id="promptOutput" class="prompt-box" readonly></textarea>
             <button id="copyBtn" type="button">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
-                Copiar Prompt
+                <span>Copiar Prompt</span>
             </button>
         </div>
 
@@ -191,7 +197,7 @@
             </button>
             
             <div id="geminiLoading" style="display: none; text-align: center; margin-top: 1rem; font-weight: bold; color: var(--accent);">
-                Por favor espera.
+                Por favor espera... Generando copys dinámicos...
             </div>
         </div>
 
@@ -208,8 +214,8 @@
                 </div>
                 
                 <div>
-                    <h3 style="font-size: 1rem; color: var(--primary); margin-bottom: 0.5rem;">📌 Títulos Cumplidores (5) <span style="font-size: 0.8rem; font-weight: normal; color: #64748b;">(Máx 30 caracteres)</span></h3>
-                    <ol id="outputTitles" style="background: #f1f5f9; padding: 1rem 1rem 1rem 2rem; border-radius: 8px; font-size: 0.9rem; display: flex; flex-direction: column; gap: 0.4rem; font-weight: 600;"></ol>
+                    <h3 style="font-size: 1rem; color: var(--primary); margin-bottom: 0.5rem;">📌 Títulos Dinámicos (5) <span style="font-size: 0.8rem; font-weight: normal; color: #64748b;">(Máx 30 caracteres inc. sintaxis)</span></h3>
+                    <ol id="outputTitles" style="background: #f1f5f9; padding: 1rem 1rem 1rem 2rem; border-radius: 8px; font-size: 0.9rem; display: flex; flex-direction: column; gap: 0.4rem; font-weight: 600; font-family: monospace;"></ol>
                 </div>
 
                 <div>
@@ -221,14 +227,55 @@
     </div>
 
     <script>
-        // Actualizado para escuchar tanto inputs como selects
+        // 1. LISTA NEGRA DE PALABRAS PROHIBIDAS
+        const BLACKLIST = [
+            'medic', 'salud', 'doctor', 'clinica', 'farmacia', 'remedio', 'suplemento', 'terapia', 'cura',
+            'prestamo', 'invertir', 'inversion', 'credito', 'dinero', 'forex', 'crypto', 'cripto', 'rico',
+            'casino', 'apuesta', 'ganar', 'suerte', 'loto', 'bajar de peso', 'adelgazar', 'dieta', 'sexual'
+        ];
+
+        function contienePalabrasProhibidas(texto) {
+            if (!texto) return false;
+            const min = texto.toLowerCase();
+            const normalizado = min.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+            return BLACKLIST.some(palabra => normalizado.includes(palabra));
+        }
+
         const inputs = document.querySelectorAll('#dataForm input, #dataForm select');
         const promptOutput = document.getElementById('promptOutput');
         const copyBtn = document.getElementById('copyBtn');
+        const analyzeBtn = document.getElementById('analyzeBtn');
 
-        // Función que construye el texto del prompt con la estructura exacta
+        // Función que construye el texto del prompt y valida la lista negra
         function updatePrompt() {
-            const titulo = document.getElementById('titulo').value || '[TÍTULO]';
+            const tituloInput = document.getElementById('titulo');
+            const tituloVal = tituloInput.value;
+            const errorSpan = document.getElementById('tituloError');
+
+            // --- VALIDACIÓN DE LISTA NEGRA ---
+            if (contienePalabrasProhibidas(tituloVal)) {
+                tituloInput.classList.add('error-input');
+                errorSpan.style.display = 'block';
+                
+                // Bloquear botones
+                copyBtn.disabled = true;
+                copyBtn.querySelector('span').textContent = "⚠️ Corrige el título";
+                analyzeBtn.disabled = true;
+                analyzeBtn.textContent = "⚠️ Título prohibido detectado";
+                return; // Detiene la generación del prompt
+            } else {
+                tituloInput.classList.remove('error-input');
+                errorSpan.style.display = 'none';
+                
+                // Habilitar botones
+                copyBtn.disabled = false;
+                copyBtn.querySelector('span').textContent = "Copiar Prompt";
+                analyzeBtn.disabled = false;
+                analyzeBtn.textContent = "Analizar Landing y Generar Copy";
+            }
+            // ---------------------------------
+
+            const titulo = tituloVal || '[TÍTULO]';
             const tema = document.getElementById('tema').value || '[TEMA]';
             const nombre = document.getElementById('nombre').value || '[NOMBRE]';
             const correo = document.getElementById('correo').value || '[CORREO]';
@@ -291,7 +338,6 @@ Requisitos:
             promptOutput.value = template;
         }
 
-        // Escuchar cambios en los inputs/selects para actualizar en tiempo real
         inputs.forEach(input => {
             input.addEventListener('input', updatePrompt);
             input.addEventListener('change', updatePrompt);
@@ -299,29 +345,27 @@ Requisitos:
 
         // Lógica del botón copiar
         copyBtn.addEventListener('click', () => {
+            if(copyBtn.disabled) return;
             promptOutput.select();
-            promptOutput.setSelectionRange(0, 99999); // Para móviles
+            promptOutput.setSelectionRange(0, 99999); 
             
             navigator.clipboard.writeText(promptOutput.value).then(() => {
-                const originalText = copyBtn.innerHTML;
-                copyBtn.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg> ¡Copiado con éxito!`;
+                const span = copyBtn.querySelector('span');
+                const originalText = span.textContent;
+                span.textContent = `¡Copiado con éxito!`;
                 copyBtn.classList.add('success');
                 
                 setTimeout(() => {
-                    copyBtn.innerHTML = originalText;
+                    span.textContent = originalText;
                     copyBtn.classList.remove('success');
                 }, 2000);
-            }).catch(err => {
-                console.error('Error al copiar: ', err);
-            });
+            }).catch(err => console.error('Error al copiar: ', err));
         });
 
-        // Inicializar con los placeholders por defecto
         updatePrompt();
 
-
         // ==========================================
-        // LÓGICA AGREGADA: APARTADO GEMINI API
+        // LÓGICA GEMINI API (CON PROMPT ESTRICTO PARA TÍTULOS Y DESCRIPCIONES)
         // ==========================================
 
         document.addEventListener("DOMContentLoaded", () => {
@@ -336,18 +380,20 @@ Requisitos:
             const statusDiv = document.getElementById("geminiApiStatus");
             if (key) {
                 localStorage.setItem("gemini_api_key", key);
-                statusDiv.textContent = "Token de Gemini guardado exitosamente en el navegador.";
+                statusDiv.textContent = "Token guardado exitosamente.";
                 statusDiv.style.color = "var(--success)";
             } else {
                 localStorage.removeItem("gemini_api_key");
-                statusDiv.textContent = "Token de Gemini eliminado.";
-                statusDiv.style.color = "red";
+                statusDiv.textContent = "Token eliminado.";
+                statusDiv.style.color = "var(--danger)";
             }
             statusDiv.style.display = "block";
             setTimeout(() => { statusDiv.style.display = "none"; }, 3000);
         });
 
-        document.getElementById("analyzeBtn").addEventListener("click", async () => {
+        analyzeBtn.addEventListener("click", async () => {
+            if(analyzeBtn.disabled) return;
+
             const apiKey = document.getElementById("geminiKey").value.trim();
             const htmlData = document.getElementById("landingHtml").value.trim();
 
@@ -360,70 +406,56 @@ Requisitos:
                 return;
             }
 
-            const btn = document.getElementById("analyzeBtn");
             const loading = document.getElementById("geminiLoading");
             const placeholderText = document.getElementById("placeholderResultText");
             const policyBox = document.getElementById("policyAlertBox");
             const copyBox = document.getElementById("copyOutputBox");
 
-            btn.disabled = true;
+            analyzeBtn.disabled = true;
             loading.style.display = "block";
             placeholderText.style.display = "none";
             policyBox.style.display = "none";
             copyBox.style.display = "none";
 
-            // Prompt maestro con los requisitos exactos de Google Ads solicitados
+            // NUEVO PROMPT DEL SISTEMA: OBLIGA A USAR {KeyWord:Texto} Y EL TONO OFICIAL
             const systemPrompt = `Eres un auditor experto de políticas de Google Ads y un copywriter publicitario de alto rendimiento. Tu tarea es analizar el código HTML o el texto de la landing page que te proporcione el usuario.
 
 Debes realizar dos acciones fundamentales de forma sumamente rigurosa:
 
-1. DETECCIÓN DE CONTENIDO RESTRINGIDO O PROHIBIDO:
-Evalúa si la landing pertenece o toca temas sensibles que requieran licencias, certificaciones o estén totalmente prohibidos:
-- Juegos de Apuestas y Casinos (Gambling): Casinos online/físicos, apuestas, póker, loterías, bonos.
-- Salud y Medicamentos: Farmacias, medicamentos recetados, suplementos con ingredientes prohibidos (como la efedrina), adicciones.
-- Servicios Financieros: Préstamos, inversiones, reparación de crédito. Prohibidas opciones binarias y payday loans de APR abusivos.
-- Criptomonedas y Activos Digitales: Exchanges, wallets. Prohibidas las ICOs.
-- Contenido Político: Partidos, candidatos, causas de interés público.
-- Alcohol: Cervezas, vinos, licores.
-- Contenido Sexual: Citas casuales, juguetes sexuales, lencería sugestiva. (Pornografía estrictamente prohibida).
+1. DETECCIÓN DE CONTENIDO RESTRINGIDO:
+Evalúa si la landing pertenece a temas sensibles (Salud, Finanzas, Crypto, Apuestas, Contenido Político o Sexual).
+SI detectas que la landing promete resultados médicos, financieros o requiere licencias (es decir, NO es puramente INFORMATIVA de servicios seguros), debes marcar "es_limitado_o_prohibido": true y explicar la razón.
 
-2. GENERACIÓN DE COPY PUBLICITARIO CON REQUISITOS EDITORIALES ESTRICTOS:
+2. GENERACIÓN DE COPY PUBLICITARIO CON REGLAS ESTRICTAS DE FORMATO:
 Genera exactamente:
 - 15 Palabras clave ideales para campañas de búsqueda.
-- 5 Títulos persuasivos (Cada uno con una longitud MÁXIMA de 30 caracteres).
-- 4 Descripciones convincentes (Cada una con una longitud MÁXIMA de 90 caracteres).
-
-REGLAS EDITORIALES CRÍTICAS PARA TÍTULOS Y DESCRIPCIONES (Para evitar rechazos automáticos):
-- CERO PUNTUACIÓN EXCESIVA: No uses múltiples signos de exclamación ni interrogación (Ej: Prohibido "¡¡¡Compra ya!!!"). Máximo uno por elemento si es indispensable.
-- CERO SÍMBOLOS EXTRAÑOS: No utilices caracteres especiales para engañar al sistema (Ej: Prohibido usar "g@n$", "gr4tis").
-- CERO MAYÚSCULAS INJUSTIFICADAS: No escribas palabras separadas por espacios o completamente en mayúsculas (Ej: Prohibido "G R A T I S" o "COMPRA HOY"). Usa capitalización estándar normal.
+- 5 Títulos persuasivos. REGLA ESTRICTA: TODOS los títulos deben usar OBLIGATORIAMENTE la sintaxis de inserción dinámica de Google Ads: {KeyWord:Texto de Reemplazo}. 
+  El "Texto de Reemplazo" debe variar (ej: Portal Home, Realiza tu reserva aquí, Verifica tu servicio, Portal Oficial), pero adaptado a la temática analizada.
+  LÍMITE DE CARACTERES: La suma total de caracteres de cada título (incluyendo las llaves y la palabra KeyWord:) NO DEBE superar los 30 caracteres bajo ninguna circunstancia. (Ej: "{KeyWord:Portal Oficial}" tiene 24 caracteres).
+- 4 Descripciones convincentes. REGLA ESTRICTA: Deben tener un tono de seguridad, oficialidad y gestión remota (ej: "Realiza tus pagos desde casa sin riesgos ni demoras", "Consulta desde nuestro portal oficial de manera segura"), siempre adaptándolo al nicho real de la landing.
+  LÍMITE DE CARACTERES: Máximo 90 caracteres por descripción (contando espacios y puntuación).
 
 Devuelve tu respuesta ÚNICAMENTE en formato JSON válido con la siguiente estructura exacta:
 {
   "analisis_politicas": {
     "es_limitado_o_prohibido": true o false,
     "categoria_detectada": "Nombre de la categoría si es true, o 'Ninguna' si es false",
-    "detalles_advertencia": "Explicación detallada de las limitaciones, si requiere licencias gubernamentales, certificaciones ante Google, advertencia de exención de responsabilidad, o si viola por completo las políticas del canal. Si está libre de peligro, felicítalo indicando que cumple.",
+    "detalles_advertencia": "Explicación de la limitación o confirmación de que es puramente informativa y segura.",
     "cumple_requisitos_editoriales_landing": true o false
   },
   "palabras_clave": ["kw1", "kw2", "... hasta 15 elementos"],
-  "titulos": ["titulo 1", "... hasta 5 elementos"],
+  "titulos": ["{KeyWord:Texto 1}", "{KeyWord:Texto 2}", "... hasta 5 elementos"],
   "descripciones": ["descripcion 1", "... hasta 4 elementos"]
 }`;
 
             const finalPrompt = `${systemPrompt}\n\n[CÓDIGO / TEXTO DE LA LANDING A ANALIZAR]:\n${htmlData}`;
 
             try {
-                // Llamada simplificada a la API de Gemini (sin generationConfig conflictivo)
                 const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
                     method: "POST",
-                    headers: {
-                        "Content-Type": "application/json"
-                    },
+                    headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
-                        contents: [{
-                            parts: [{ text: finalPrompt }]
-                        }]
+                        contents: [{ parts: [{ text: finalPrompt }] }]
                     })
                 });
 
@@ -433,11 +465,8 @@ Devuelve tu respuesta ÚNICAMENTE en formato JSON válido con la siguiente estru
                 }
 
                 const data = await response.json();
-                
-                // Limpiamos la respuesta por si el modelo incluye marcas de formato Markdown como ```json ... ```
                 let jsonText = data.candidates[0].content.parts[0].text;
                 jsonText = jsonText.replace(/```json/g, "").replace(/```/g, "").trim();
-                
                 const result = JSON.parse(jsonText);
 
                 // 1. Mostrar estado de Políticas de Google Ads
@@ -453,7 +482,7 @@ Devuelve tu respuesta ÚNICAMENTE en formato JSON válido con la siguiente estru
                     policyBox.style.backgroundColor = "#dcfce7";
                     policyBox.style.border = "1px solid #4ade80";
                     policyBox.style.color = "#166534";
-                    policyBox.innerHTML = `<strong>✅ CATEGORÍA GENERAL PERMITIDA:</strong><br>${result.analisis_politicas.detalles_advertencia}`;
+                    policyBox.innerHTML = `<strong>✅ CATEGORÍA GENERAL PERMITIDA (INFORMATIVA):</strong><br>${result.analisis_politicas.detalles_advertencia}`;
                 }
 
                 // 2. Renderizar Palabras Clave
@@ -465,16 +494,18 @@ Devuelve tu respuesta ÚNICAMENTE en formato JSON válido con la siguiente estru
                     span.style.padding = "0.3rem 0.6rem";
                     span.style.borderRadius = "4px";
                     span.style.border = "1px solid var(--border)";
-                    span.style.textContent = kw;
+                    span.textContent = kw;
                     kwContainer.appendChild(span);
                 });
 
-                // 3. Renderizar Títulos
+                // 3. Renderizar Títulos Dinámicos (Resaltando sintaxis)
                 const titlesContainer = document.getElementById("outputTitles");
                 titlesContainer.innerHTML = "";
                 result.titulos.forEach(tituloStr => {
                     const li = document.createElement("li");
-                    li.innerHTML = `${tituloStr} <span style="font-weight: normal; color:#64748b; font-size:0.8rem; margin-left:8px;">(${tituloStr.length} carac.)</span>`;
+                    const colorizado = tituloStr.replace(/(\{KeyWord:)(.*?)(\})/g, '<span style="color:var(--accent);">$1</span><span style="color:var(--primary);">$2</span><span style="color:var(--accent);">$3</span>');
+                    
+                    li.innerHTML = `${colorizado} <span style="font-weight: normal; color:#64748b; font-size:0.8rem; margin-left:8px; font-family: system-ui;">(${tituloStr.length} carac.)</span>`;
                     titlesContainer.appendChild(li);
                 });
 
@@ -494,7 +525,7 @@ Devuelve tu respuesta ÚNICAMENTE en formato JSON válido con la siguiente estru
                 alert("Hubo un fallo procesando la información con Gemini: " + error.message);
                 placeholderText.style.display = "block";
             } finally {
-                btn.disabled = false;
+                analyzeBtn.disabled = false;
                 loading.style.display = "none";
             }
         });
