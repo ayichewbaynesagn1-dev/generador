@@ -244,7 +244,7 @@
             });
         }
 
-        // Transformación de HTML via Gemini
+        // Transformación de HTML via Gemini (Sin usar JSON para evitar errores de parseo)
         const transformBtn = document.getElementById('transformBtn');
         
         transformBtn.addEventListener('click', async () => {
@@ -267,19 +267,26 @@
             document.getElementById("geminiLoading").style.display = "block";
             document.getElementById("resultsPanel").style.display = "none";
 
-            // Prompt del Sistema
+            // Prompt del Sistema modificado para NO usar JSON
             const systemPrompt = `Eres un desarrollador web experto. Tu tarea es reescribir los textos de 3 archivos HTML (Index, Política de Privacidad y Términos) para adaptarlos a un nuevo tema.
 
 REGLAS ESTRICTAS:
 1. NO OMITAS NADA DE ESTRUCTURA: Debes conservar exactamente las mismas etiquetas HTML, clases CSS, IDs, atributos, scripts y estilos en línea originales. SOLO modifica el contenido de texto visible, atributos 'alt', 'title' y 'placeholder'.
 2. TEMA OBLIGATORIO: Adapta todo el texto al tema: "${temaFinal}". Varía tu redacción para que sea creativa, extensa, informativa, como un blog instructivo o paso a paso. No generes textos genéricos.
 3. AVISO LEGAL OBLIGATORIO: Debes dejar explícitamente claro en partes visibles (hero, footer y textos legales) que este es un SITIO EXCLUSIVAMENTE EDUCATIVO, a modo de tutorial, y que "NO intenta suplantar a ninguna entidad oficial, pública ni privada".
-4. FORMATO DE RESPUESTA: Devuelve ÚNICAMENTE un objeto JSON válido. Sin markdown \`\`\`json, sin texto adicional, solo el JSON puro con esta estructura exacta:
-{
-  "index": "<!DOCTYPE html>...",
-  "privacidad": "<!DOCTYPE html>...",
-  "terminos": "<!DOCTYPE html>..."
-}`;
+4. FORMATO DE RESPUESTA: NO uses JSON. Devuelve el código separando cada archivo con las siguientes etiquetas EXACTAS:
+
+[INDEX_START]
+(Código del Index aquí)
+[INDEX_END]
+
+[PRIVACIDAD_START]
+(Código de Privacidad aquí)
+[PRIVACIDAD_END]
+
+[TERMINOS_START]
+(Código de Términos aquí)
+[TERMINOS_END]`;
 
             const userPrompt = `Aquí tienes los 3 códigos HTML a transformar para el tema "${temaFinal}":
 
@@ -293,7 +300,6 @@ ${htmlPriv}
 ${htmlTerm}`;
 
             try {
-                // Usando Gemini 2.5 Flash
                 const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
@@ -301,8 +307,8 @@ ${htmlTerm}`;
                         system_instruction: { parts: [{ text: systemPrompt }] },
                         contents: [{ parts: [{ text: userPrompt }] }],
                         generationConfig: {
-                            temperature: 0.7, // Para dar variación a los textos
-                            response_mime_type: "application/json" // Fuerza retorno JSON estricto
+                            temperature: 0.7 // Para dar variación a los textos
+                            // Se eliminó la obligación de JSON
                         }
                     })
                 });
@@ -313,13 +319,30 @@ ${htmlTerm}`;
                 }
 
                 const data = await response.json();
-                let jsonText = data.candidates[0].content.parts[0].text;
-                const result = JSON.parse(jsonText);
+                const textResult = data.candidates[0].content.parts[0].text;
+
+                // Función para extraer texto entre dos etiquetas
+                const extractHTML = (text, startTag, endTag) => {
+                    const start = text.indexOf(startTag);
+                    const end = text.indexOf(endTag);
+                    if (start !== -1 && end !== -1) {
+                        // Limpiamos los backticks (```html) por si la IA los agrega por costumbre
+                        let code = text.substring(start + startTag.length, end).trim();
+                        code = code.replace(/^```html/i, "").replace(/^```/i, "").replace(/```$/i, "").trim();
+                        return code;
+                    }
+                    return "Error: No se pudo generar o extraer este código correctamente.";
+                };
+
+                // Extraemos los 3 códigos
+                const outIndex = extractHTML(textResult, "[INDEX_START]", "[INDEX_END]");
+                const outPriv = extractHTML(textResult, "[PRIVACIDAD_START]", "[PRIVACIDAD_END]");
+                const outTerm = extractHTML(textResult, "[TERMINOS_START]", "[TERMINOS_END]");
 
                 // Rellenar Resultados
-                document.getElementById("outputIndex").value = result.index;
-                document.getElementById("outputPrivacidad").value = result.privacidad;
-                document.getElementById("outputTerminos").value = result.terminos;
+                document.getElementById("outputIndex").value = outIndex;
+                document.getElementById("outputPrivacidad").value = outPriv;
+                document.getElementById("outputTerminos").value = outTerm;
 
                 // Mostrar panel
                 document.getElementById("resultsPanel").style.display = "block";
