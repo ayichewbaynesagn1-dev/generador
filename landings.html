@@ -39,7 +39,7 @@
 
         .form-group { display: flex; flex-direction: column; gap: 0.4rem; margin-bottom: 1rem; }
         label { font-size: 0.9rem; font-weight: 600; color: var(--primary); }
-        input { 
+        input, select { 
             width: 100%; 
             padding: 0.75rem; 
             border: 1.5px solid var(--border); 
@@ -47,8 +47,9 @@
             font-size: 0.95rem; 
             transition: border-color 0.2s; 
             background: var(--bg); 
+            color: var(--text);
         }
-        input:focus { outline: none; border-color: var(--accent); background: #fff; }
+        input:focus, select:focus { outline: none; border-color: var(--accent); background: #fff; }
 
         .prompt-box {
             width: 100%;
@@ -105,8 +106,29 @@
                 </div>
                 
                 <div class="form-group">
-                    <label for="tema">Tema de la landing</label>
-                    <input type="text" id="tema" placeholder="Ej: plantar arboles para ahorrar energía">
+                    <label for="tema">Tema de la landing (Servicios Seguros)</label>
+                    <select id="tema">
+                        <option value="Servicios de plomería y reparaciones del hogar">Plomería y reparaciones del hogar</option>
+                        <option value="Clases de música o idiomas">Clases de música o idiomas</option>
+                        <option value="Servicios de jardinería y paisajismo">Servicios de jardinería y paisajismo</option>
+                        <option value="Agencia de diseño gráfico y desarrollo web">Diseño gráfico y desarrollo web</option>
+                        <option value="Servicios de fotografía para eventos">Fotografía para eventos (Bodas, corporativos)</option>
+                        <option value="Consultoría estratégica de negocios">Consultoría estratégica de negocios</option>
+                        <option value="Servicios de limpieza residencial y comercial">Limpieza residencial y comercial</option>
+                        <option value="Reparación y mantenimiento de computadoras">Reparación de computadoras</option>
+                        <option value="Entrenamiento personal y rutinas fitness">Entrenamiento personal y fitness</option>
+                        <option value="Agencia de marketing digital y SEO">Agencia de marketing digital</option>
+                        <option value="Estudio de diseño de interiores">Diseño y decoración de interiores</option>
+                        <option value="Servicios profesionales de mudanza">Servicios profesionales de mudanza</option>
+                        <option value="Organización y planificación de eventos">Organización de eventos</option>
+                        <option value="Academia de clases de baile">Academia de clases de baile</option>
+                        <option value="Servicios de contabilidad para pymes">Servicios de contabilidad para pymes</option>
+                        <option value="Taller mecánico y revisión automotriz">Taller mecánico automotriz</option>
+                        <option value="Paseo y entrenamiento canino">Paseo y adiestramiento de perros</option>
+                        <option value="Cursos intensivos de programación">Cursos intensivos de programación</option>
+                        <option value="Alquiler de equipos y mobiliario para fiestas">Alquiler de mobiliario para fiestas</option>
+                        <option value="Servicios de cerrajería de emergencia 24/7">Cerrajería de emergencia</option>
+                    </select>
                 </div>
 
                 <div class="form-group">
@@ -199,7 +221,8 @@
     </div>
 
     <script>
-        const inputs = document.querySelectorAll('#dataForm input');
+        // Actualizado para escuchar tanto inputs como selects
+        const inputs = document.querySelectorAll('#dataForm input, #dataForm select');
         const promptOutput = document.getElementById('promptOutput');
         const copyBtn = document.getElementById('copyBtn');
 
@@ -224,7 +247,7 @@ Genera estos archivos:
 (todos vinculados entre sí)
 
 La landing debe incluir estas secciones:
-- SEO TOTALMTENTE PROFESIONAL con todos los datos. SEO On-page: Optimización dentro de la web, incluyendo palabras clave, títulos, meta descripciones y calidad del contenido.
+- SEO TOTALMENTE PROFESIONAL con todos los datos. SEO On-page: Optimización dentro de la web, incluyendo palabras clave, títulos, meta descripciones y calidad del contenido.
 SEO Técnico: Mejorar la estructura, velocidad de carga y rastreabilidad del sitio para los motores de búsqueda.
 SEO Off-page: Acciones externas, principalmente la consecución de enlaces de calidad (linkbuilding) para aumentar la autoridad
  
@@ -238,7 +261,8 @@ SEO Off-page: Acciones externas, principalmente la consecución de enlaces de ca
 
 Datos del negocio:
 - Título de la landing: ${titulo}
-- Tema de la landing: ${tema}
+- Tema de la landing: ${tema} 
+(IMPORTANTE SOBRE EL TEMA: La landing debe ser estrictamente de carácter ÚNICAMENTE INFORMATIVO. No incluye reclamos médicos, ni venta de suplementos, ni promesas financieras, ni requiere certificaciones especiales. Además, asegúrate de generar un contenido extenso, altamente creativo y COMPLETAMENTE DIFERENTE cada vez, evitando repetir estructuras o textos genéricos anteriores).
 - Nombre y apellidos: ${nombre}
 - Correo: ${correo}
 - Dirección: ${direccion}
@@ -267,9 +291,10 @@ Requisitos:
             promptOutput.value = template;
         }
 
-        // Escuchar cambios en los inputs para actualizar en tiempo real
+        // Escuchar cambios en los inputs/selects para actualizar en tiempo real
         inputs.forEach(input => {
             input.addEventListener('input', updatePrompt);
+            input.addEventListener('change', updatePrompt);
         });
 
         // Lógica del botón copiar
@@ -440,7 +465,7 @@ Devuelve tu respuesta ÚNICAMENTE en formato JSON válido con la siguiente estru
                     span.style.padding = "0.3rem 0.6rem";
                     span.style.borderRadius = "4px";
                     span.style.border = "1px solid var(--border)";
-                    span.textContent = kw;
+                    span.style.textContent = kw;
                     kwContainer.appendChild(span);
                 });
 
